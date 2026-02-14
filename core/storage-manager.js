@@ -26,7 +26,7 @@ export class StorageManager {
         if (!db.objectStoreNames.contains(STORE_NAMES.events)) {
           const eventsStore = db.createObjectStore(STORE_NAMES.events, {
             keyPath: "id",
-            autoIncrement: true
+            autoIncrement: true,
           });
           eventsStore.createIndex("timestamp", "timestamp", { unique: false });
           eventsStore.createIndex("type", "type", { unique: false });
@@ -39,7 +39,8 @@ export class StorageManager {
       };
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error("Failed to open IndexedDB"));
+      request.onerror = () =>
+        reject(request.error || new Error("Failed to open IndexedDB"));
     });
 
     return this.dbPromise;
@@ -93,7 +94,8 @@ export class StorageManager {
       const request = index.getAll(range);
 
       request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error || new Error("Failed to read events"));
+      request.onerror = () =>
+        reject(request.error || new Error("Failed to read events"));
     });
   }
 
@@ -111,7 +113,8 @@ export class StorageManager {
       const request = store.get(date);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error || new Error("Failed to read daily summary"));
+      request.onerror = () =>
+        reject(request.error || new Error("Failed to read daily summary"));
     });
   }
 
@@ -130,7 +133,8 @@ export class StorageManager {
       store.put(summary);
 
       tx.oncomplete = () => resolve(summary);
-      tx.onerror = () => reject(tx.error || new Error("Failed to save daily summary"));
+      tx.onerror = () =>
+        reject(tx.error || new Error("Failed to save daily summary"));
     });
   }
 
@@ -150,8 +154,14 @@ export class StorageManager {
         const events = request.result || [];
         const totals = {
           totalCarbon: 0,
-          byCategory: { media: 0, shopping: 0, browsing: 0 },
-          byPlatform: {}
+          byCategory: {
+            media: 0,
+            shopping: 0,
+            browsing: 0,
+            video: 0,
+            social: 0,
+          },
+          byPlatform: {},
         };
 
         events.forEach((event) => {
@@ -161,6 +171,12 @@ export class StorageManager {
           const type = event.type || "browsing";
           if (type === "media" || type === "video" || type === "social") {
             totals.byCategory.media += grams;
+            if (type === "video") {
+              totals.byCategory.video += grams;
+            }
+            if (type === "social") {
+              totals.byCategory.social += grams;
+            }
           } else if (type === "shopping") {
             totals.byCategory.shopping += grams;
           } else {
@@ -176,7 +192,8 @@ export class StorageManager {
         resolve(totals);
       };
 
-      request.onerror = () => reject(request.error || new Error("Failed to read total impact"));
+      request.onerror = () =>
+        reject(request.error || new Error("Failed to read total impact"));
     });
   }
 }

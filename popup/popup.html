@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CurbYourCarbon</title>
     <link rel="stylesheet" href="popup.css" />
+    <script src="../libs/chart.min.js"></script>
   </head>
   <body>
     <main class="popup">
@@ -19,31 +20,42 @@
       </section>
 
       <section class="breakdown">
-        <div class="breakdown-item">
-          <span class="breakdown-label">Streaming & Social</span>
-          <div class="bar">
-            <div class="bar-fill bar-video" id="bar-video"></div>
-          </div>
-          <span class="value" id="value-video">0 g</span>
+        <div class="chart-wrap">
+          <canvas id="category-chart" height="180"></canvas>
         </div>
-        <div class="breakdown-item">
-          <span class="breakdown-label">Shopping</span>
-          <div class="bar">
-            <div class="bar-fill bar-social" id="bar-social"></div>
+        <div class="chart-key">
+          <div class="key-item">
+            <span class="key-swatch key-media"></span>
+            <span class="key-label">Streaming & Social</span>
+            <span class="key-value" id="value-media">0 g</span>
           </div>
-          <span class="value" id="value-social">0 g</span>
-        </div>
-        <div class="breakdown-item">
-          <span class="breakdown-label">General Browsing</span>
-          <div class="bar">
-            <div class="bar-fill bar-shopping" id="bar-shopping"></div>
+          <div class="key-item">
+            <span class="key-swatch key-shopping"></span>
+            <span class="key-label">Shopping</span>
+            <span class="key-value" id="value-shopping">0 g</span>
           </div>
-          <span class="value" id="value-shopping">0 g</span>
+          <div class="key-item">
+            <span class="key-swatch key-browsing"></span>
+            <span class="key-label">General Browsing</span>
+            <span class="key-value" id="value-browsing">0 g</span>
+          </div>
         </div>
       </section>
 
       <section class="equivalency">
         <p id="equivalency-text">0 miles driven</p>
+      </section>
+
+      <section class="device-selector">
+        <label for="device-type">Device:</label>
+        <select id="device-type">
+          <option value="auto" selected>🔍 Auto-detect</option>
+          <option value="phone">📱 Phone (5W)</option>
+          <option value="tablet">📱 Tablet (10W)</option>
+          <option value="laptop">💻 Laptop (20W)</option>
+          <option value="desktop">🖥️ Desktop (40W)</option>
+          <option value="tv">📺 TV (100W)</option>
+        </select>
       </section>
 
       <button id="dashboard-button" class="dashboard-button">View Full Dashboard →</button>

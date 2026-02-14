@@ -15,7 +15,7 @@
     return;
   }
 
-  const { getActiveTime, sendEventToBackground, debounce } = window.CurbYourCarbon;
+  const { getActiveTime, sendEventToBackground, debounce, getDeviceInfo } = window.CurbYourCarbon;
 
   // State management
   const state = {
@@ -175,6 +175,9 @@
       videos: state.videosLoaded.size
     });
 
+    // Get device info to include in payload
+    const deviceInfo = await getDeviceInfo();
+
     const result = await sendEventToBackground({
       type: "shopping",
       platform: "amazon",
@@ -185,6 +188,7 @@
       highResImages: state.highResImages.size,
       videosLoaded: state.videosLoaded.size,
       searches: state.searchesPerformed,
+      deviceInfo: deviceInfo,
       timestamp: Date.now()
     });
 

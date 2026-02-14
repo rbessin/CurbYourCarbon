@@ -1,5 +1,8 @@
 import { StorageManager } from "../core/storage-manager.js";
-import { calculateTotalCarbon } from "../core/carbon-calculator.js";
+import {
+  calculateTotalCarbon,
+  getDeviceEnergyConsumption,
+} from "../core/carbon-calculator.js";
 import { BASELINE_GRID_INTENSITY } from "../core/constants.js";
 
 const storageManager = new StorageManager();
@@ -191,13 +194,14 @@ const fetchGridIntensityFromElectricityMaps = async (token, location) => {
     data?.carbonIntensityAvg,
     data?.intensity,
   ];
-
   const intensity = intensityValueCandidates.find(
     (value) => typeof value === "number" && Number.isFinite(value),
   );
 
   if (typeof intensity !== "number") {
-    throw new Error("Electricity Maps response missing numeric carbon intensity");
+    throw new Error(
+      "Electricity Maps response missing numeric carbon intensity",
+    );
   }
 
   return {
@@ -307,10 +311,18 @@ const updateDailySummary = async (eventRecord) => {
   await storageManager.saveDailySummary(existing);
 };
 
+/**
+ * Calculate carbon emissions from event data.
+ *
+ * Uses Performance API data (actual bytes transferred) plus device
+ * settings and realtime grid intensity (when available).
+ */
 const calculateEventCarbon = async (payload) => {
+  const deviceWatts = await getDeviceEnergyConsumption();
   const gridData = await getRealtimeGridIntensity();
   const gridIntensity =
-    typeof gridData?.intensity === "number" && Number.isFinite(gridData.intensity)
+    typeof gridData?.intensity === "number" &&
+    Number.isFinite(gridData.intensity)
       ? gridData.intensity
       : null;
 
@@ -318,6 +330,7 @@ const calculateEventCarbon = async (payload) => {
 
   const baselineCarbon = calculateTotalCarbon(payload, {
     carbonIntensity: BASELINE_GRID_INTENSITY,
+    deviceWatts,
   });
 
   const carbonGrams =
@@ -403,9 +416,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === "install") {
-    console.log("CurbYourCarbon: Extension installed - Universal tracking enabled");
+    // Set default device to auto-detect on first install
+    await chrome.storage.sync.set({ deviceType: "auto" });
+    console.log(
+      "CurbYourCarbon: Extension installed - Universal tracking enabled",
+    );
+    console.log("CurbYourCarbon: Device set to auto-detect by default");
   }
   if (details.reason === "update") {
     console.log(
@@ -415,4 +433,6 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-console.log("CurbYourCarbon: Service worker initialized with Performance API tracking");
+console.log(
+  "CurbYourCarbon: Service worker initialized with Performance API tracking",
+);

@@ -15,7 +15,7 @@
     return;
   }
 
-  const { sendEventToBackground } = window.CurbYourCarbon;
+  const { sendEventToBackground, getDeviceInfo } = window.CurbYourCarbon;
 
   const state = {
     playStart: null,
@@ -39,11 +39,15 @@
 
     console.log("CurbYourCarbon: Sending event -", durationMinutes.toFixed(2), "minutes at", resolution);
     
+    // Get device info to include in payload
+    const deviceInfo = await getDeviceInfo();
+    
     const result = await sendEventToBackground({
       type: "video",
       platform: "youtube",
       duration: +durationMinutes.toFixed(2),
       resolution: resolution,
+      deviceInfo: deviceInfo,
       timestamp: Date.now()
     });
 
