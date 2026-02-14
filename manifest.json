@@ -3,7 +3,7 @@
   "name": "CurbYourCarbon",
   "version": "2.0.0",
   "description": "Track the carbon footprint of your browsing activity on any website",
-  "permissions": ["storage", "tabs", "activeTab"],
+  "permissions": ["storage", "tabs", "activeTab", "offscreen", "geolocation"],
   "host_permissions": [
     "http://*/*",
     "https://*/*",
