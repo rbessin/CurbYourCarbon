@@ -1,5 +1,5 @@
 import { StorageManager } from "../core/storage-manager.js";
-import { calculateTotalCarbon } from "../core/carbon-calculator.js";
+import { calculateTotalCarbon, getDeviceEnergyConsumption } from "../core/carbon-calculator.js";
 
 const storageManager = new StorageManager();
 
@@ -42,22 +42,24 @@ const updateDailySummary = async (eventRecord) => {
  * Calculate carbon emissions from event data.
  * 
  * Uses Performance API data (actual bytes transferred) to calculate
- * precise carbon footprint.
- * 
- * Future enhancements will add:
- * - Regional carbon intensity (from API)
- * - Device-specific energy costs
+ * precise carbon footprint with user's device settings.
  */
-const calculateEventCarbon = (payload) => {
-  // Use new Performance API-based calculation
-  // This works for ANY website, not just specific platforms
-  return calculateTotalCarbon(payload, {
+const calculateEventCarbon = async (payload) => {
+  // Get user's device energy consumption
+  const deviceWatts = await getDeviceEnergyConsumption();
+  
+  console.log("CurbYourCarbon: Calculating with device watts:", deviceWatts, "W");
+  
+  // Use Performance API-based calculation with actual device
+  const carbon = calculateTotalCarbon(payload, {
+    deviceWatts,
     // FUTURE: Add regional carbon intensity
     // carbonIntensity: await getRegionalCarbonIntensity(userLocation),
-    
-    // FUTURE: Add device-specific energy
-    // deviceWatts: getUserDeviceWatts(),
   });
+  
+  console.log("CurbYourCarbon: Carbon breakdown - Network + Device =", carbon, "g");
+  
+  return carbon;
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -70,7 +72,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       const payload = message.payload || {};
-      const carbonGrams = calculateEventCarbon(payload);
+      const carbonGrams = await calculateEventCarbon(payload);
       
       const eventRecord = {
         timestamp: payload.timestamp || Date.now(),
@@ -106,11 +108,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === "install") {
+    // Set default device to auto-detect on first install
+    await chrome.storage.sync.set({ deviceType: 'auto' });
     console.log("CurbYourCarbon: Extension installed - Universal tracking enabled");
+    console.log("CurbYourCarbon: Device set to auto-detect by default");
   }
   if (details.reason === "update") {
+    // On update, set auto-detect if no device preference exists
+    const result = await chrome.storage.sync.get('deviceType');
+    if (!result.deviceType) {
+      await chrome.storage.sync.set({ deviceType: 'auto' });
+      console.log("CurbYourCarbon: Device preference set to auto-detect");
+    }
     console.log("CurbYourCarbon: Extension updated to", chrome.runtime.getManifest().version);
   }
 });
