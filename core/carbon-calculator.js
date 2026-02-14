@@ -1,120 +1,112 @@
 /**
- * Carbon calculation utilities for extension events.
+ * Carbon calculation utilities using Performance API data.
+ * 
+ * This calculator uses ACTUAL measured data (bytes transferred, time active)
+ * rather than platform-specific estimates.
  */
-import { CARBON_ESTIMATES, EQUIVALENCIES, DEVICE_MULTIPLIERS } from "./constants.js";
+import { 
+  NETWORK_ENERGY, 
+  GRID_CARBON, 
+  DEVICE_ENERGY,
+  EQUIVALENCIES 
+} from "./constants.js";
 
 /**
- * Get device multiplier from device info.
- * @param {Object} deviceInfo
- * @returns {number}
+ * Calculate carbon impact from network data transfer.
+ * 
+ * @param {number} bytes - Total bytes transferred
+ * @param {number} carbonIntensity - gCO2 per kWh (optional, uses global average if not provided)
+ * @returns {number} grams CO2
  */
-const getDeviceMultiplier = (deviceInfo) => {
-  if (!deviceInfo || !deviceInfo.deviceClass) {
-    return DEVICE_MULTIPLIERS.unknown;
-  }
-  return DEVICE_MULTIPLIERS[deviceInfo.deviceClass] || DEVICE_MULTIPLIERS.unknown;
+export const calculateNetworkCarbon = (bytes, carbonIntensity = null) => {
+  if (!bytes || bytes <= 0) return 0;
+  
+  // Convert bytes → GB → kWh → CO2
+  const GB = bytes / 1024 / 1024 / 1024;
+  const kWh = GB * NETWORK_ENERGY.kWhPerGB;
+  const intensity = carbonIntensity || GRID_CARBON.globalAverage;
+  
+  return +(kWh * intensity).toFixed(2);
 };
 
 /**
- * Calculate video impact in grams CO2.
- * @param {number} durationMinutes
- * @param {string} resolution
- * @param {Object} deviceInfo
- * @returns {number}
+ * Calculate carbon impact from device energy consumption.
+ * 
+ * @param {number} timeActiveMinutes - Minutes of active browsing
+ * @param {number} deviceWatts - Device power consumption (optional, uses average if not provided)
+ * @param {number} carbonIntensity - gCO2 per kWh (optional, uses global average if not provided)
+ * @returns {number} grams CO2
  */
-export const calculateVideoImpact = (durationMinutes, resolution, deviceInfo = null) => {
-  const perHour =
-    CARBON_ESTIMATES.video[resolution] || CARBON_ESTIMATES.video["1080p"];
-  const hours = Math.max(durationMinutes, 0) / 60;
-  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
-  return +(perHour * hours * deviceMultiplier).toFixed(2);
+export const calculateDeviceCarbon = (timeActiveMinutes, deviceWatts = null, carbonIntensity = null) => {
+  if (!timeActiveMinutes || timeActiveMinutes <= 0) return 0;
+  
+  // Convert minutes → hours → kWh → CO2
+  const hours = timeActiveMinutes / 60;
+  const watts = deviceWatts || DEVICE_ENERGY.averageBrowsing;
+  const kWh = (watts / 1000) * hours;
+  const intensity = carbonIntensity || GRID_CARBON.globalAverage;
+  
+  return +(kWh * intensity).toFixed(2);
 };
 
 /**
- * Calculate social browsing impact in grams CO2.
- * @param {number} timeActiveMinutes
- * @param {number} mediaCount
- * @param {number} imagesLoaded
- * @param {number} videosLoaded
- * @param {Object} deviceInfo
- * @returns {number}
+ * Calculate total carbon impact for a browsing session.
+ * 
+ * This is the MAIN calculation function that combines network and device costs.
+ * 
+ * @param {Object} data - Event data from universal tracker
+ * @param {number} data.totalMB - Total MB transferred
+ * @param {number} data.timeActive - Minutes of active browsing
+ * @param {number} data.imageMB - MB of images loaded
+ * @param {number} data.videoMB - MB of videos loaded
+ * @param {Object} options - Optional overrides
+ * @param {number} options.carbonIntensity - Regional carbon intensity (future API integration)
+ * @param {number} options.deviceWatts - Device-specific energy (future user setting)
+ * @returns {number} grams CO2
  */
-export const calculateSocialImpact = (
-  timeActiveMinutes,
-  mediaCount,
-  imagesLoaded = 0,
-  videosLoaded = 0,
-  deviceInfo = null
-) => {
-  const base = Math.max(timeActiveMinutes, 0) * CARBON_ESTIMATES.social.reddit;
-  const scrollingMinutes = Math.min(
-    Math.max(timeActiveMinutes, 0),
-    Math.max(mediaCount, 0),
-  );
-  const scrolling = scrollingMinutes * CARBON_ESTIMATES.social.scrolling;
-  const images = Math.max(imagesLoaded, 0) * CARBON_ESTIMATES.social.imageLoad;
-  const videos = Math.max(videosLoaded, 0) * CARBON_ESTIMATES.social.videoLoad;
-  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
-  return +((base + scrolling + images + videos) * deviceMultiplier).toFixed(2);
-};
-
-/**
- * Calculate shopping impact in grams CO2.
- * @param {number} timeActiveMinutes
- * @param {number} productsViewed
- * @param {number} productCardsLoaded
- * @param {number} imagesLoaded
- * @param {number} highResImages
- * @param {number} videosLoaded
- * @param {Object} deviceInfo
- * @returns {number}
- */
-export const calculateShoppingImpact = (
-  timeActiveMinutes,
-  productsViewed,
-  productCardsLoaded = 0,
-  imagesLoaded = 0,
-  highResImages = 0,
-  videosLoaded = 0,
-  deviceInfo = null
-) => {
-  const browsing =
-    Math.max(timeActiveMinutes, 0) * CARBON_ESTIMATES.shopping.amazon;
-  const products =
-    Math.max(productsViewed, 0) * CARBON_ESTIMATES.shopping.productView;
-  const cards =
-    Math.max(productCardsLoaded, 0) * CARBON_ESTIMATES.shopping.productCard;
-  const images =
-    Math.max(imagesLoaded, 0) * CARBON_ESTIMATES.shopping.imageLoad;
-  const highRes =
-    Math.max(highResImages, 0) * CARBON_ESTIMATES.shopping.highResImage;
-  const videos =
-    Math.max(videosLoaded, 0) * CARBON_ESTIMATES.shopping.videoLoad;
-  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
-  return +((browsing + products + cards + images + highRes + videos) * deviceMultiplier).toFixed(2);
+export const calculateTotalCarbon = (data, options = {}) => {
+  const bytes = (data.totalMB || 0) * 1024 * 1024;
+  const timeActive = data.timeActive || 0;
+  
+  // Calculate network transfer cost
+  const networkCarbon = calculateNetworkCarbon(bytes, options.carbonIntensity);
+  
+  // Calculate device energy cost
+  const deviceCarbon = calculateDeviceCarbon(timeActive, options.deviceWatts, options.carbonIntensity);
+  
+  // Add processing overhead for video content (decoding is energy-intensive)
+  const videoBytes = (data.videoMB || 0) * 1024 * 1024;
+  const videoOverhead = calculateNetworkCarbon(videoBytes * 0.5, options.carbonIntensity);
+  
+  const total = networkCarbon + deviceCarbon + videoOverhead;
+  
+  return +total.toFixed(2);
 };
 
 /**
  * Aggregate event impacts by category.
- * @param {Array} events
- * @returns {{video: number, social: number, shopping: number}}
+ * 
+ * @param {Array} events - Array of event objects
+ * @returns {{video: number, social: number, shopping: number, browsing: number}}
  */
 export const aggregateByCategory = (events) => {
   return events.reduce(
     (totals, event) => {
-      if (totals[event.type] === undefined) {
-        return totals;
+      const category = event.type || 'browsing';
+      if (!totals[category]) {
+        totals[category] = 0;
       }
-      totals[event.type] += event.carbonGrams || 0;
+      totals[category] += event.carbonGrams || 0;
       return totals;
     },
-    { video: 0, social: 0, shopping: 0 },
+    { media: 0, shopping: 0, browsing: 0 }
   );
 };
 
 /**
  * Calculate everyday equivalencies from total grams CO2.
- * @param {number} totalGrams
+ * 
+ * @param {number} totalGrams - Total CO2 in grams
  * @returns {{milesDriven: number, phonesCharged: number, treesNeeded: number}}
  */
 export const calculateEquivalencies = (totalGrams) => {
@@ -124,4 +116,70 @@ export const calculateEquivalencies = (totalGrams) => {
     phonesCharged: +(grams / EQUIVALENCIES.gramsPerPhoneCharge).toFixed(2),
     treesNeeded: +(grams / EQUIVALENCIES.gramsPerTreeYear).toFixed(4),
   };
+};
+
+/**
+ * Get breakdown of carbon sources.
+ * 
+ * @param {Object} data - Event data
+ * @param {Object} options - Calculation options
+ * @returns {{network: number, device: number, videoOverhead: number, total: number}}
+ */
+export const getCarbonBreakdown = (data, options = {}) => {
+  const bytes = (data.totalMB || 0) * 1024 * 1024;
+  const timeActive = data.timeActive || 0;
+  const videoBytes = (data.videoMB || 0) * 1024 * 1024;
+  
+  const network = calculateNetworkCarbon(bytes, options.carbonIntensity);
+  const device = calculateDeviceCarbon(timeActive, options.deviceWatts, options.carbonIntensity);
+  const videoOverhead = calculateNetworkCarbon(videoBytes * 0.5, options.carbonIntensity);
+  
+  return {
+    network: +network.toFixed(2),
+    device: +device.toFixed(2),
+    videoOverhead: +videoOverhead.toFixed(2),
+    total: +(network + device + videoOverhead).toFixed(2)
+  };
+};
+
+/**
+ * FUTURE API INTEGRATION HELPERS
+ * 
+ * These functions provide the structure for future enhancements.
+ * Currently they return defaults, but can be replaced with API calls.
+ */
+
+/**
+ * Get regional carbon intensity.
+ * 
+ * FUTURE: Integrate with ElectricityMap or WattTime API
+ * 
+ * @param {string} location - User location (lat/lon or region code)
+ * @returns {Promise<number>} grams CO2 per kWh
+ */
+export const getRegionalCarbonIntensity = async (location = null) => {
+  // PLACEHOLDER: Return global average
+  // FUTURE: 
+  // const response = await fetch(`https://api.electricitymap.org/v3/carbon-intensity/latest?lon=${lon}&lat=${lat}`);
+  // const data = await response.json();
+  // return data.carbonIntensity;
+  
+  return GRID_CARBON.globalAverage;
+};
+
+/**
+ * Detect or estimate device energy consumption.
+ * 
+ * FUTURE: Use User Agent + screen size heuristics, or ask user
+ * 
+ * @returns {number} Watts
+ */
+export const getDeviceEnergyConsumption = () => {
+  // PLACEHOLDER: Return average
+  // FUTURE:
+  // - Check screen size: window.screen.width × window.screen.height
+  // - Parse User Agent for device hints
+  // - Or simply ask user in settings: "What device are you using?"
+  
+  return DEVICE_ENERGY.averageBrowsing;
 };

@@ -1,107 +1,89 @@
 /**
- * Research-based carbon estimates and conversion factors for digital activities.
+ * Research-based carbon calculation constants using Performance API approach.
  * 
- * SOURCES & METHODOLOGY:
- * All estimates are based on peer-reviewed research and industry reports from:
- * - International Energy Agency (IEA, 2020-2024)
- * - The Carbon Trust (2021-2022)
- * - Greenspector environmental impact studies (2021)
- * - Academic research on digital carbon footprints
- * 
- * See README.md for detailed research citations and methodology.
+ * SIMPLIFIED CATEGORIZATION SYSTEM:
+ * Instead of 6+ categories, we use 3 clear, user-friendly categories that make sense.
  */
 
 /**
- * VIDEO STREAMING (YouTube)
- * Based on IEA/Carbon Trust research showing ~36-55g CO2e per hour of streaming.
- * 
- * Key insight: Resolution has LESS impact than commonly thought.
- * Device type (TV vs laptop vs phone) has MORE impact than resolution.
- * 
- * These estimates represent:
- * - Data transmission over networks
- * - Data center energy use
- * - End-user device energy consumption
- * - Global average electricity grid carbon intensity
- * 
- * Formula: Base streaming cost + resolution multiplier
- * - Base cost covers network/data center infrastructure
- * - Resolution multiplier accounts for additional data transfer
+ * DATA TRANSFER CARBON INTENSITY
  */
-export const CARBON_ESTIMATES = {
-  video: {
-    // Grams CO2e per hour of streaming
-    // Based on data: 4K uses ~7GB/hr, 1080p uses ~3GB/hr, 480p uses ~0.6GB/hr
-    "2160p": 55,   // 4K - highest quality, ~7GB data/hour
-    "1440p": 50,   // 2K - ~4GB data/hour
-    "1080p": 45,   // Full HD - ~3GB data/hour (most common)
-    "720p": 40,    // HD - ~1.5GB data/hour
-    "480p": 36,    // SD - ~0.6GB data/hour
-    "360p": 33     // Low - ~0.3GB data/hour
-  },
+export const NETWORK_ENERGY = {
+  kWhPerGB: 0.016,  // Energy consumed per GB of data transferred
+};
 
-  /**
-   * SOCIAL MEDIA (Reddit, Instagram, etc.)
-   * Based on Greenspector 2021 study measuring actual app energy consumption.
-   * 
-   * Reddit: 2.48g CO2e per minute = 148.8g per hour
-   * Values converted to "per minute of active browsing" for consistency.
-   * 
-   * Additional factors:
-   * - Image loading adds data transfer
-   * - Video content significantly increases footprint
-   * - Infinite scroll preloads content
-   */
-  social: {
-    reddit: 2.48,        // Grams per minute of active browsing
-    scrolling: 0,        // Included in base rate (removed to avoid double-counting)
-    imageLoad: 0.05,     // Per image loaded (thumbnail/standard)
-    videoLoad: 0.15      // Per video loaded (embedded content)
-  },
+/**
+ * GRID CARBON INTENSITY
+ */
+export const GRID_CARBON = {
+  globalAverage: 475,  // grams CO2 per kWh (global average)
+  regional: {}  // Placeholder for API integration
+};
 
-  /**
-   * E-COMMERCE (Amazon, online shopping)
-   * Based on research showing ~0.5g CO2 per website page view.
-   * 
-   * Key findings:
-   * - Average visitor views 7.8 pages before purchasing
-   * - Product images are data-intensive
-   * - High-res images (product zoom) use 2x bandwidth
-   * 
-   * Note: This covers ONLY digital browsing, not shipping emissions.
-   */
-  shopping: {
-    amazon: 1.0,           // Grams per minute of active browsing
-    productView: 0.5,      // Per product detail page visited
-    productCard: 0.15,     // Per product thumbnail loaded (search results)
-    imageLoad: 0.08,       // Per standard product image loaded
-    highResImage: 0.20,    // Per high-resolution image (zoom, gallery)
-    videoLoad: 0.40        // Per product video loaded
-  },
+/**
+ * DEVICE ENERGY CONSUMPTION
+ */
+export const DEVICE_ENERGY = {
+  averageBrowsing: 20,  // Watts - average across phone/laptop/desktop/TV
+  byDevice: {}  // Placeholder for future device detection
+};
 
-  /**
-   * GENERAL IMAGE QUALITY ESTIMATES
-   * Used for cross-platform image loading calculations.
-   */
-  images: {
-    thumbnail: 0.02,    // Small thumbnails (<100KB)
-    standard: 0.08,     // Standard images (100-500KB)
-    highRes: 0.20       // High-resolution images (>500KB)
-  }
+/**
+ * SIMPLIFIED WEBSITE CATEGORIES (3 categories)
+ * 
+ * We map all websites to one of three user-friendly categories:
+ * 1. media - Streaming & social (high data, continuous engagement)
+ * 2. shopping - E-commerce and product browsing
+ * 3. browsing - Everything else (news, docs, search, productivity)
+ */
+export const WEBSITE_CATEGORIES = {
+  // Streaming & Social Media (both are high-data, continuous scrolling/watching)
+  media: [
+    // Video streaming
+    'youtube.com', 'youtu.be', 'netflix.com', 'twitch.tv', 'vimeo.com', 'hulu.com', 
+    'disneyplus.com', 'hbomax.com', 'primevideo.com', 'crunchyroll.com',
+    // Social media
+    'reddit.com', 'instagram.com', 'facebook.com', 'twitter.com', 'x.com', 
+    'tiktok.com', 'linkedin.com', 'pinterest.com', 'snapchat.com', 'tumblr.com'
+  ],
+  
+  // E-commerce & Shopping
+  shopping: [
+    'amazon.com', 'ebay.com', 'etsy.com', 'walmart.com', 'target.com', 
+    'bestbuy.com', 'aliexpress.com', 'alibaba.com', 'shopify.com', 'wayfair.com',
+    'nordstrom.com', 'macys.com', 'ikea.com', 'homedepot.com', 'lowes.com'
+  ],
+  
+  // Everything else: news, docs, email, search, blogs, productivity
+  browsing: [
+    // News
+    'nytimes.com', 'cnn.com', 'bbc.com', 'theguardian.com', 'reuters.com', 
+    'wsj.com', 'washingtonpost.com', 'forbes.com', 'bloomberg.com',
+    // Productivity
+    'gmail.com', 'docs.google.com', 'drive.google.com', 'office.com', 
+    'notion.so', 'slack.com', 'trello.com', 'asana.com',
+    // Search & Reference
+    'google.com', 'bing.com', 'wikipedia.org', 'stackoverflow.com',
+    'github.com', 'gitlab.com'
+  ]
+};
+
+/**
+ * Get user-friendly category name for display.
+ */
+export const CATEGORY_DISPLAY_NAMES = {
+  media: "Streaming & Social",
+  shopping: "Shopping",
+  browsing: "General Browsing"
 };
 
 /**
  * CARBON EQUIVALENCIES
- * Convert grams CO2 to relatable everyday activities.
- * 
- * Sources:
- * - EPA greenhouse gas equivalencies calculator
- * - USDA Forest Service carbon sequestration rates
  */
 export const EQUIVALENCIES = {
-  gramsPerMileDriven: 404,      // Average car (EPA)
-  gramsPerPhoneCharge: 8.8,     // Smartphone full charge
-  gramsPerTreeYear: 21000       // CO2 absorbed by one tree per year
+  gramsPerMileDriven: 404,
+  gramsPerPhoneCharge: 8.8,
+  gramsPerTreeYear: 21000
 };
 
 /**
@@ -129,7 +111,6 @@ export const DEVICE_MULTIPLIERS = {
 
 /**
  * DATABASE CONFIGURATION
- * IndexedDB storage for events and daily summaries.
  */
 export const DB_NAME = "CurbYourCarbonDB";
 
@@ -139,40 +120,17 @@ export const STORE_NAMES = {
 };
 
 /**
- * METHODOLOGY NOTES:
+ * CALCULATION FORMULA:
  * 
- * 1. CONSERVATIVE ESTIMATES:
- *    We use mid-range estimates from peer-reviewed sources.
- *    Real-world values may vary based on:
- *    - Geographic location (electricity grid carbon intensity)
- *    - Time of day (renewable energy availability)
- *    - Device efficiency
- *    - Network infrastructure
+ * Total CO2 = Network Transfer CO2 + Device Energy CO2 + Video Processing Overhead
  * 
- * 2. WHAT'S INCLUDED:
- *    - Data transmission (network infrastructure)
- *    - Data center energy use
- *    - End-user device energy consumption
- *    - Average global electricity carbon intensity
+ * 1. NETWORK TRANSFER CO2:
+ *    CO2 = (bytes / 1,073,741,824) × 0.016 kWh/GB × 475 gCO2/kWh
  * 
- * 3. WHAT'S NOT INCLUDED:
- *    - Device manufacturing (embodied carbon)
- *    - Network infrastructure manufacturing
- *    - Physical shipping (for e-commerce)
- *    - Content production emissions
+ * 2. DEVICE ENERGY CO2:
+ *    CO2 = (minutes / 60) × 20W / 1000 × 475 gCO2/kWh
  * 
- * 4. RESOLUTION VS DEVICE:
- *    Research shows device type has MORE impact than resolution:
- *    - Streaming on 50" TV: 4.5x more energy than laptop
- *    - Streaming on laptop: 2x more energy than phone
- *    - 4K vs 1080p: Only ~1.2x difference
- *    
- *    We cannot detect device type, so our estimates are conservative
- *    averages across all device types.
- * 
- * 5. UPDATES:
- *    These values should be reviewed annually as:
- *    - Energy grids become greener
- *    - Data centers improve efficiency
- *    - Codecs improve compression
+ * 3. VIDEO PROCESSING OVERHEAD:
+ *    CO2 = videoBytes × 0.5 × network formula
+ *    (Video decoding requires ~50% extra processing power)
  */
