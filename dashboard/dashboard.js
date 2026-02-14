@@ -289,9 +289,81 @@ const bindRangeButtons = () => {
   });
 };
 
+const loadDeviceSetting = async () => {
+  try {
+    const result = await chrome.storage.sync.get(['deviceType', 'detectedDevice']);
+    const deviceType = result.deviceType || 'auto';
+    document.getElementById('device-type').value = deviceType;
+    
+    // Show what was detected if using auto
+    if (deviceType === 'auto' && result.detectedDevice) {
+      console.log('CurbYourCarbon: Auto-detected as', result.detectedDevice);
+    }
+  } catch (error) {
+    console.warn('Could not load device setting', error);
+  }
+};
+
+const saveDeviceSetting = async (deviceType) => {
+  try {
+    // If user manually selects a device (not auto), clear the auto-detection flag
+    if (deviceType !== 'auto') {
+      await chrome.storage.sync.set({ deviceType, deviceDetected: false });
+      console.log('CurbYourCarbon: Device manually set to', deviceType);
+    } else {
+      await chrome.storage.sync.set({ deviceType: 'auto' });
+      console.log('CurbYourCarbon: Device set to auto-detect');
+    }
+    alert('Device setting saved!');
+  } catch (error) {
+    console.warn('Could not save device setting', error);
+    alert('Error saving device setting');
+  }
+};
+
+const loadApiKey = async () => {
+  try {
+    const result = await chrome.storage.local.get('ELECTRICITY_MAPS_TOKEN');
+    const apiKey = result.ELECTRICITY_MAPS_TOKEN;
+    if (apiKey) {
+      document.getElementById('api-key').value = apiKey;
+    }
+  } catch (error) {
+    console.warn('Could not load API key', error);
+  }
+};
+
+const saveApiKey = async () => {
+  try {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (apiKey) {
+      await chrome.storage.local.set({ 'ELECTRICITY_MAPS_TOKEN': apiKey });
+      console.log('CurbYourCarbon: ElectricityMap API key saved');
+      alert('API key saved! Regional carbon intensity will be used on next tracking event.');
+    } else {
+      await chrome.storage.local.remove('ELECTRICITY_MAPS_TOKEN');
+      console.log('CurbYourCarbon: API key removed');
+      alert('API key removed. Using baseline intensity.');
+    }
+  } catch (error) {
+    console.warn('Could not save API key', error);
+    alert('Error saving API key');
+  }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   bindRangeButtons();
+  loadDeviceSetting();
+  loadApiKey();
   renderDashboard("today");
+  
+  // Event listeners for settings
+  document.getElementById('device-type').addEventListener('change', (e) => {
+    saveDeviceSetting(e.target.value);
+  });
+  
+  document.getElementById('save-api-key').addEventListener('click', saveApiKey);
+  
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") {
       const active = document.querySelector(".range-toggle .active");
