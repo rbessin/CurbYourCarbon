@@ -58,6 +58,43 @@ const getQuickInsight = (total) => {
   return "💡 Consider reducing usage or quality.";
 };
 
+const updateTreeVisualization = (totalGrams) => {
+  const TREE_CAPACITY = 60; // grams CO2 per day
+  const percentage = Math.min((totalGrams / TREE_CAPACITY) * 100, 100);
+  const isOverCapacity = totalGrams > TREE_CAPACITY;
+
+  // Update fraction display
+  document.getElementById("tree-fraction").textContent = 
+    `${totalGrams.toFixed(1)} / ${TREE_CAPACITY} g`;
+
+  // Get the fill element
+  const fillElement = document.getElementById("tree-fill");
+  
+  if (fillElement) {
+    // Calculate how much to reveal from the bottom
+    // inset(top right bottom left) - we adjust the top value to reveal from bottom
+    const topInset = 100 - percentage/1.225; // adjust a bit to fit the tree outline exactly
+    fillElement.style.clipPath = `inset(${topInset}% 0 0 0)`;
+    
+    // Change color if over capacity
+    if (isOverCapacity) {
+      fillElement.classList.add('over-capacity');
+    } else {
+      fillElement.classList.remove('over-capacity');
+    }
+  }
+
+  // Show/hide overflow indicator
+  const overflowIndicator = document.getElementById("tree-overflow");
+  if (isOverCapacity) {
+    overflowIndicator.style.display = "block";
+    const treesNeeded = Math.ceil(totalGrams / TREE_CAPACITY);
+    overflowIndicator.textContent = `⚠️ Needs ${treesNeeded} trees today!`;
+  } else {
+    overflowIndicator.style.display = "none";
+  }
+};
+
 const renderPopup = async () => {
   try {
     const events = await storageManager.getEventsToday();
@@ -80,6 +117,8 @@ const renderPopup = async () => {
     document.getElementById("value-browsing").textContent = formatGrams(browsing);
 
     document.getElementById("quick-insight").textContent = getQuickInsight(total);
+
+    updateTreeVisualization(total);
 
     document.getElementById("carbon-rate").textContent = `Current Carbon Rate: ${carbonRate}`;
 

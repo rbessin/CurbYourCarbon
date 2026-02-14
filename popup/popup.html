@@ -43,6 +43,22 @@
         </div>
       </section>
 
+      <section class="tree-visualization">
+        <div class="tree-header">
+          <span class="tree-label">Daily Tree Capacity</span>
+          <span class="tree-fraction" id="tree-fraction">0 / 60 g</span>
+        </div>
+        <div class="tree-container">
+          <div class="tree-background"></div>
+          <div id="tree-fill" class="tree-fill"></div>
+          <clipPath src="../assets/tree-mask.svg" class="tree-outline" alt="Tree outline">
+          <div class="tree-overflow-indicator" id="tree-overflow" style="display: none;">
+            ⚠️ Over capacity!
+          </div>
+        </div>
+        <div class="tree-caption">Each tree absorbs ~60g CO₂ per day</div>
+      </section>
+
       <section class="equivalency">
         <p id="equivalency-text">0 miles driven</p>
       </section>

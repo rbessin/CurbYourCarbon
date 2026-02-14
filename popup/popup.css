@@ -122,6 +122,113 @@ body {
   font-weight: 500;
 }
 
+/* Tree Visualization */
+.tree-visualization {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tree-label {
+  font-size: 0.9rem;
+  color: #2f7d32;
+  font-weight: 600;
+}
+
+.tree-fraction {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.tree-container {
+  position: relative;
+  width: 100%;
+  max-width: 200px;
+  margin: 0 auto 0.5rem;
+  aspect-ratio: 100 / 120;
+}
+
+.tree-background,
+.tree-outline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tree-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tree-background {
+  background: #e0e0e0;
+  mask-image: url('../assets/tree-mask.svg');
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: url('../assets/tree-mask.svg');
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.tree-fill {
+  background: #4caf50;
+  mask-image: url('../assets/tree-mask.svg');
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: url('../assets/tree-mask.svg');
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 0.5s ease, background 0.3s ease;
+}
+
+.tree-fill.over-capacity {
+  background: #ff5722;
+}
+
+.tree-outline {
+  pointer-events: none;
+}
+
+.tree-overflow-indicator {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #ff5722;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.tree-caption {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: center;
+  font-style: italic;
+}
+
 /* Equivalency */
 .equivalency {
   padding: 1rem 1.5rem;
