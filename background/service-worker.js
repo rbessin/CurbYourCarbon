@@ -47,12 +47,18 @@ const calculateEventCarbon = (payload) => {
     return calculateSocialImpact(
       payload.timeActive || 0,
       payload.mediaCount || 0,
+      payload.imagesLoaded || 0,
+      payload.videosLoaded || 0,
     );
   }
   if (payload.type === "shopping") {
     return calculateShoppingImpact(
       payload.timeActive || 0,
       payload.productsViewed || 0,
+      payload.productCardsLoaded || 0,
+      payload.imagesLoaded || 0,
+      payload.highResImages || 0,
+      payload.videosLoaded || 0,
     );
   }
   return 0;
@@ -62,6 +68,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type !== "TRACK_EVENT") {
     return;
   }
+
+  console.log("CurbYourCarbon: Received TRACK_EVENT", message.payload);
 
   (async () => {
     try {
@@ -78,9 +86,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await storageManager.saveEvent(eventRecord);
       await updateDailySummary(eventRecord);
 
+      console.log("CurbYourCarbon: Event saved successfully", eventRecord);
+
       chrome.runtime.sendMessage({ type: "EVENT_SAVED", payload: eventRecord });
       sendResponse({ ok: true, carbonGrams });
     } catch (error) {
+      console.error("CurbYourCarbon: Failed to save event", error);
       sendResponse({
         ok: false,
         error: error.message || "Failed to save event",
@@ -93,9 +104,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    console.log("CurbYourCarbon installed");
+    console.log("CurbYourCarbon: Extension installed");
   }
   if (details.reason === "update") {
-    console.log("CurbYourCarbon updated");
+    console.log("CurbYourCarbon: Extension updated");
   }
 });
+
+console.log("CurbYourCarbon: Service worker initialized");

@@ -8,29 +8,33 @@
   </head>
   <body>
     <main class="popup">
+      <section class="header">
+        <h1>🌱 CurbYourCarbon</h1>
+      </section>
+
       <section class="summary">
-        <h1>Today</h1>
+        <div class="summary-label">Today's Carbon Impact</div>
         <div class="total" id="today-total">0 g</div>
-        <p class="label">Total CO2 impact</p>
+        <div class="insight" id="quick-insight">Start browsing to track your footprint!</div>
       </section>
 
       <section class="breakdown">
         <div class="breakdown-item">
-          <span>Video</span>
+          <span class="breakdown-label">Video Streaming</span>
           <div class="bar">
             <div class="bar-fill bar-video" id="bar-video"></div>
           </div>
           <span class="value" id="value-video">0 g</span>
         </div>
         <div class="breakdown-item">
-          <span>Social</span>
+          <span class="breakdown-label">Social Media</span>
           <div class="bar">
             <div class="bar-fill bar-social" id="bar-social"></div>
           </div>
           <span class="value" id="value-social">0 g</span>
         </div>
         <div class="breakdown-item">
-          <span>Shopping</span>
+          <span class="breakdown-label">Online Shopping</span>
           <div class="bar">
             <div class="bar-fill bar-shopping" id="bar-shopping"></div>
           </div>
@@ -39,11 +43,10 @@
       </section>
 
       <section class="equivalency">
-        <h2>Equivalency</h2>
         <p id="equivalency-text">0 miles driven</p>
       </section>
 
-      <button id="dashboard-button" class="dashboard-button">View Dashboard</button>
+      <button id="dashboard-button" class="dashboard-button">View Full Dashboard →</button>
     </main>
 
     <script type="module" src="popup.js"></script>

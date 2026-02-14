@@ -8,10 +8,11 @@ let activeTracker = null;
  * @param {Object} eventData
  * @returns {Promise<Object>}
  */
-export const sendEventToBackground = (eventData) => {
+const sendEventToBackground = (eventData) => {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: "TRACK_EVENT", payload: eventData }, (response) => {
       if (chrome.runtime.lastError) {
+        console.error("Extension context invalidated:", chrome.runtime.lastError);
         resolve({ ok: false, error: chrome.runtime.lastError.message });
         return;
       }
@@ -24,7 +25,7 @@ export const sendEventToBackground = (eventData) => {
  * Track active time while the tab is visible/focused.
  * @returns {{getActiveMinutes: () => number, reset: () => void}}
  */
-export const getActiveTime = () => {
+const getActiveTime = () => {
   if (activeTracker) {
     return activeTracker;
   }
@@ -81,7 +82,7 @@ export const getActiveTime = () => {
  * @param {number} wait
  * @returns {Function}
  */
-export const debounce = (func, wait) => {
+const debounce = (func, wait) => {
   let timeoutId = null;
   return (...args) => {
     if (timeoutId) {
@@ -90,3 +91,9 @@ export const debounce = (func, wait) => {
     timeoutId = setTimeout(() => func(...args), wait);
   };
 };
+
+// Make functions available globally for other content scripts
+window.CurbYourCarbon = window.CurbYourCarbon || {};
+window.CurbYourCarbon.sendEventToBackground = sendEventToBackground;
+window.CurbYourCarbon.getActiveTime = getActiveTime;
+window.CurbYourCarbon.debounce = debounce;

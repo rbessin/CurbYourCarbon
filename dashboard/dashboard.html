@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurbYourCarbon Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="dashboard">
+      <header class="header">
+        <div class="header-content">
+          <h1>🌱 Carbon Impact Dashboard</h1>
+          <p class="subtitle">Track and reduce your digital footprint</p>
+        </div>
+        <div class="range-toggle">
+          <button data-range="today" class="active">Today</button>
+          <button data-range="week">Week</button>
+          <button data-range="month">Month</button>
+        </div>
+      </header>
+
+      <section class="total-card">
+        <div class="total-label">Total Carbon Footprint</div>
+        <div id="total-impact" class="total-value">0 g CO₂</div>
+      </section>
+
+      <section class="card insights-card">
+        <h2>💡 Insights</h2>
+        <div id="insights" class="insights-container">
+          <div class="insight insight-neutral">
+            <span class="insight-icon">→</span>
+            <span class="insight-text">Start browsing to see personalized insights</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card recommendations-card">
+        <h2>🎯 Recommendations</h2>
+        <div id="recommendations" class="recommendations-container">
+          <div class="recommendation">
+            <div class="recommendation-header">
+              <span class="recommendation-action">Track your activity</span>
+              <span class="recommendation-impact">Build awareness</span>
+            </div>
+            <div class="recommendation-description">Browse YouTube, Reddit, or Amazon to start tracking your carbon footprint.</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2>Category Breakdown</h2>
+          <canvas id="category-chart" height="200"></canvas>
+        </section>
+
+        <section class="card">
+          <h2>Platform Breakdown</h2>
+          <canvas id="platform-chart" height="200"></canvas>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Timeline</h2>
+        <canvas id="timeline-chart" height="200"></canvas>
+      </section>
+
+      <section class="card equivalencies-card">
+        <h2>Equivalencies</h2>
+        <p class="equivalencies-subtitle">Your carbon footprint is equivalent to:</p>
+        <div class="equivalencies" id="equivalencies">
+          <div class="equivalency-item">
+            <div class="equivalency-value">0</div>
+            <div class="equivalency-label">miles driven</div>
+          </div>
+          <div class="equivalency-item">
+            <div class="equivalency-value">0</div>
+            <div class="equivalency-label">phones charged</div>
+          </div>
+          <div class="equivalency-item">
+            <div class="equivalency-value">0</div>
+            <div class="equivalency-label">tree-days needed</div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="dashboard-footer">
+        <p>All estimates based on peer-reviewed research from IEA, Carbon Trust, and Greenspector.</p>
+        <p><a href="https://github.com/yourusername/curbyourcarbon" target="_blank">View Research Sources →</a></p>
+      </footer>
+    </div>
+
+    <script type="module" src="dashboard.js"></script>
+  </body>
+</html>

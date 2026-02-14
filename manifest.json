@@ -19,24 +19,21 @@
       "js": [
         "content-scripts/tracker-base.js",
         "content-scripts/youtube-tracker.js"
-      ],
-      "type": "module"
+      ]
     },
     {
       "matches": ["*://www.reddit.com/*"],
       "js": [
         "content-scripts/tracker-base.js",
         "content-scripts/reddit-tracker.js"
-      ],
-      "type": "module"
+      ]
     },
     {
       "matches": ["*://www.amazon.com/*"],
       "js": [
         "content-scripts/tracker-base.js",
         "content-scripts/amazon-tracker.js"
-      ],
-      "type": "module"
+      ]
     }
   ],
   "action": {

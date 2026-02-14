@@ -24,6 +24,25 @@ const updateBars = (categoryTotals, total) => {
   shoppingBar.style.width = `${(categoryTotals.shopping / safeTotal) * 100}%`;
 };
 
+const getQuickInsight = (total, categoryTotals) => {
+  // Typical daily usage: 1000g
+  const typical = 1000;
+  
+  if (total === 0) {
+    return "Start browsing to track your footprint!";
+  }
+  
+  if (total < typical * 0.5) {
+    return "✨ Excellent! You're well below average.";
+  } else if (total < typical * 0.8) {
+    return "👍 Good job! Your usage is below average.";
+  } else if (total < typical * 1.2) {
+    return "Average digital footprint for today.";
+  } else {
+    return "💡 Consider reducing usage or quality.";
+  }
+};
+
 const renderPopup = async () => {
   try {
     const events = await storageManager.getEventsToday();
@@ -33,7 +52,10 @@ const renderPopup = async () => {
       0,
     );
 
+    // Update main total
     document.getElementById("today-total").textContent = formatGrams(total);
+    
+    // Update category values
     document.getElementById("value-video").textContent = formatGrams(
       categoryTotals.video,
     );
@@ -44,11 +66,20 @@ const renderPopup = async () => {
       categoryTotals.shopping,
     );
 
+    // Update bars
     updateBars(categoryTotals, total);
 
+    // Update insight
+    const insight = getQuickInsight(total, categoryTotals);
+    document.getElementById("quick-insight").textContent = insight;
+
+    // Update equivalency
     const equivalencies = calculateEquivalencies(total);
-    document.getElementById("equivalency-text").textContent =
-      `${equivalencies.milesDriven} miles driven`;
+    let eqText = `${equivalencies.milesDriven.toFixed(1)} miles driven`;
+    if (equivalencies.phonesCharged >= 1) {
+      eqText += ` • ${equivalencies.phonesCharged.toFixed(0)} phones charged`;
+    }
+    document.getElementById("equivalency-text").textContent = eqText;
   } catch (error) {
     console.warn("Failed to render popup", error);
   }
@@ -57,12 +88,14 @@ const renderPopup = async () => {
 const init = () => {
   renderPopup();
 
+  // Update when new events are saved
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") {
       renderPopup();
     }
   });
 
+  // Dashboard button
   const button = document.getElementById("dashboard-button");
   button.addEventListener("click", () => {
     chrome.tabs.create({
