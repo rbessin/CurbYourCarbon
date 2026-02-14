@@ -1,7 +1,106 @@
 import { StorageManager } from "../core/storage-manager.js";
 import { calculateTotalCarbon } from "../core/carbon-calculator.js";
+import { BASELINE_GRID_INTENSITY } from "../core/constants.js";
 
 const storageManager = new StorageManager();
+const GRID_INTENSITY_CACHE_KEY = "gridIntensityCache";
+const ELECTRICITY_MAPS_TOKEN_KEY = "ELECTRICITY_MAPS_TOKEN";
+const GRID_INTENSITY_TTL_MS = 10 * 60 * 1000;
+const ELECTRICITY_MAPS_LATEST_URL =
+  "https://api.electricitymaps.com/v3/carbon-intensity/latest?zone=US";
+  
+const getElectricityMapsToken = async () => {
+  const result = await chrome.storage.local.get(ELECTRICITY_MAPS_TOKEN_KEY);
+  const token = result?.[ELECTRICITY_MAPS_TOKEN_KEY];
+  return typeof token === "string" && token.trim() ? token.trim() : null;
+};
+
+const getCachedGridIntensity = async () => {
+  const result = await chrome.storage.local.get(GRID_INTENSITY_CACHE_KEY);
+  const cache = result?.[GRID_INTENSITY_CACHE_KEY];
+  if (!cache || typeof cache !== "object") {
+    return null;
+  }
+  return cache;
+};
+
+const setCachedGridIntensity = async (cacheObj) => {
+  await chrome.storage.local.set({ [GRID_INTENSITY_CACHE_KEY]: cacheObj });
+};
+
+const fetchGridIntensityFromElectricityMaps = async (token) => {
+  const response = await fetch(ELECTRICITY_MAPS_LATEST_URL, {
+    method: "GET",
+    headers: {
+      "auth-token": token,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Electricity Maps request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const intensityValueCandidates = [data?.carbonIntensity, data?.carbonIntensityAvg, data?.intensity];
+  const intensity = intensityValueCandidates.find(
+    (value) => typeof value === "number" && Number.isFinite(value),
+  );
+
+  if (typeof intensity !== "number") {
+    throw new Error("Electricity Maps response missing numeric carbon intensity");
+  }
+
+  return {
+    intensity,
+    zone: typeof data?.zone === "string" ? data.zone : null,
+    updatedAt: Date.now(),
+    isEstimated:
+      typeof data?.isEstimated === "boolean" ? data.isEstimated : null,
+  };
+};
+
+const getRealtimeGridIntensity = async () => {
+  const cached = await getCachedGridIntensity();
+  if (
+    cached &&
+    typeof cached.updatedAt === "number" &&
+    Date.now() - cached.updatedAt < GRID_INTENSITY_TTL_MS
+  ) {
+    console.log("CurbYourCarbon: Using cached grid intensity value");
+    return cached;
+  }
+
+  const token = await getElectricityMapsToken();
+  if (!token) {
+    console.warn("CurbYourCarbon: Electricity Maps token missing");
+    return cached || null;
+  }
+
+  try {
+    console.log("CurbYourCarbon: Fetching new grid intensity from Electricity Maps");
+    const fresh = await fetchGridIntensityFromElectricityMaps(token);
+    await setCachedGridIntensity(fresh);
+    return fresh;
+  } catch (error) {
+    console.warn("CurbYourCarbon: Failed to fetch grid intensity", error);
+    return cached || null;
+  }
+};
+
+const getGridMultiplier = (intensity) => {
+  if (
+    typeof intensity !== "number" ||
+    !Number.isFinite(intensity) ||
+    BASELINE_GRID_INTENSITY <= 0
+  ) {
+    return null;
+  }
+  return +(intensity / BASELINE_GRID_INTENSITY).toFixed(3);
+};
+
+// Expose helpers for DevTools debugging (MV3 module scope doesn't attach consts to global)
+globalThis.getRealtimeGridIntensity = getRealtimeGridIntensity;
+globalThis.getCachedGridIntensity = getCachedGridIntensity;
 
 const getDateKey = (timestamp) => {
   const date = new Date(timestamp);
@@ -38,26 +137,30 @@ const updateDailySummary = async (eventRecord) => {
   await storageManager.saveDailySummary(existing);
 };
 
-/**
- * Calculate carbon emissions from event data.
- * 
- * Uses Performance API data (actual bytes transferred) to calculate
- * precise carbon footprint.
- * 
- * Future enhancements will add:
- * - Regional carbon intensity (from API)
- * - Device-specific energy costs
- */
-const calculateEventCarbon = (payload) => {
-  // Use new Performance API-based calculation
-  // This works for ANY website, not just specific platforms
-  return calculateTotalCarbon(payload, {
-    // FUTURE: Add regional carbon intensity
-    // carbonIntensity: await getRegionalCarbonIntensity(userLocation),
-    
-    // FUTURE: Add device-specific energy
-    // deviceWatts: getUserDeviceWatts(),
+const calculateEventCarbon = async (payload) => {
+  const gridData = await getRealtimeGridIntensity();
+  const gridIntensity =
+    typeof gridData?.intensity === "number" && Number.isFinite(gridData.intensity)
+      ? gridData.intensity
+      : null;
+  const gridMultiplier = getGridMultiplier(gridIntensity);
+
+  const baselineCarbon = calculateTotalCarbon(payload, {
+    carbonIntensity: BASELINE_GRID_INTENSITY,
   });
+  const carbonGrams =
+    gridMultiplier !== null
+      ? +(baselineCarbon * gridMultiplier).toFixed(2)
+      : baselineCarbon;
+
+  return {
+    carbonGrams,
+    gridIntensity,
+    gridZone: typeof gridData?.zone === "string" ? gridData.zone : null,
+    gridMultiplier,
+    gridIsEstimated:
+      typeof gridData?.isEstimated === "boolean" ? gridData.isEstimated : null,
+  };
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -70,13 +173,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       const payload = message.payload || {};
-      const carbonGrams = calculateEventCarbon(payload);
-      
+      const gridContext = await calculateEventCarbon(payload);
+      const { carbonGrams } = gridContext;
       const eventRecord = {
         timestamp: payload.timestamp || Date.now(),
         type: payload.type || 'browsing',
         platform: payload.platform || 'unknown',
-        data: payload,
+        data: {
+          ...payload,
+          gridIntensity: gridContext.gridIntensity,
+          gridZone: gridContext.gridZone,
+          gridMultiplier: gridContext.gridMultiplier,
+          gridIsEstimated: gridContext.gridIsEstimated,
+        },
         carbonGrams,
       };
 
@@ -93,7 +202,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
       
-      sendResponse({ ok: true, carbonGrams });
+      sendResponse({
+        ok: true,
+        carbonGrams,
+        gridIntensity: gridContext.gridIntensity,
+        gridZone: gridContext.gridZone,
+        gridMultiplier: gridContext.gridMultiplier,
+        gridIsEstimated: gridContext.gridIsEstimated,
+      });
     } catch (error) {
       console.error("CurbYourCarbon: Failed to save event", error);
       sendResponse({

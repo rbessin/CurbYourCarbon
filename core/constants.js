@@ -134,3 +134,5 @@ export const STORE_NAMES = {
  *    CO2 = videoBytes × 0.5 × network formula
  *    (Video decoding requires ~50% extra processing power)
  */
+export const BASELINE_GRID_INTENSITY = 400;
+// grams CO2 per kWh - assumed global average baseline
