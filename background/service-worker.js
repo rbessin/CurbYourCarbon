@@ -4,7 +4,6 @@ import {
   calculateSocialImpact,
   calculateVideoImpact,
 } from "../core/carbon-calculator.js";
-import { BASELINE_GRID_INTENSITY } from "../core/constants.js";
 
 const storageManager = new StorageManager();
 const GRID_INTENSITY_CACHE_KEY = "gridIntensityCache";
@@ -112,14 +111,20 @@ const updateDailySummary = async (eventRecord) => {
   const existing = (await storageManager.getDailySummary(dateKey)) || {
     date: dateKey,
     totalCarbon: 0,
-    byCategory: { video: 0, social: 0, shopping: 0 },
+    byCategory: { media: 0, shopping: 0, browsing: 0 },
     byPlatform: {},
   };
 
   existing.totalCarbon += eventRecord.carbonGrams;
-  if (existing.byCategory[eventRecord.type] !== undefined) {
-    existing.byCategory[eventRecord.type] += eventRecord.carbonGrams;
+  
+  // Update category totals
+  const category = eventRecord.type || 'browsing';
+  if (!existing.byCategory[category]) {
+    existing.byCategory[category] = 0;
   }
+  existing.byCategory[category] += eventRecord.carbonGrams;
+  
+  // Update platform totals
   if (!existing.byPlatform[eventRecord.platform]) {
     existing.byPlatform[eventRecord.platform] = 0;
   }
@@ -128,14 +133,13 @@ const updateDailySummary = async (eventRecord) => {
   await storageManager.saveDailySummary(existing);
 };
 
-const calculateEventCarbon = async (payload) => {
+const calculateEventCarbon = (payload) => {
   if (payload.type === "video") {
     return calculateVideoImpact(
       payload.duration || 0,
       payload.resolution || "1080p",
     );
   }
-
   if (payload.type === "social") {
     return calculateSocialImpact(
       payload.timeActive || 0,
@@ -144,9 +148,8 @@ const calculateEventCarbon = async (payload) => {
       payload.videosLoaded || 0,
     );
   }
-
   if (payload.type === "shopping") {
-    const baselineGrams = calculateShoppingImpact(
+    return calculateShoppingImpact(
       payload.timeActive || 0,
       payload.productsViewed || 0,
       payload.productCardsLoaded || 0,
@@ -154,31 +157,7 @@ const calculateEventCarbon = async (payload) => {
       payload.highResImages || 0,
       payload.videosLoaded || 0,
     );
-
-    // Apply real-time grid intensity multiplier (Option A) ONLY for shopping.
-    const grid = await getRealtimeGridIntensity();
-    const intensity = grid?.intensity;
-
-    if (typeof intensity === "number" && Number.isFinite(intensity) && BASELINE_GRID_INTENSITY > 0) {
-      const multiplier = intensity / BASELINE_GRID_INTENSITY;
-      const adjustedGrams = baselineGrams * multiplier;
-
-      // Attach metadata to the payload so the dashboard can show the context later.
-      payload.gridIntensity = intensity;
-      payload.gridZone = grid?.zone ?? null;
-      payload.gridIsEstimated = grid?.isEstimated ?? null;
-      payload.gridBaselineIntensity = BASELINE_GRID_INTENSITY;
-      payload.gridMultiplier = multiplier;
-      payload.carbonBaselineGrams = baselineGrams;
-
-      return adjustedGrams;
-    }
-
-    // Fallback: no grid info available, return baseline.
-    payload.carbonBaselineGrams = baselineGrams;
-    return baselineGrams;
   }
-
   return 0;
 };
 
@@ -187,16 +166,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
-  console.log("CurbYourCarbon: Received TRACK_EVENT", message.payload);
+  console.log("CurbYourCarbon: Received TRACK_EVENT from", sender.tab?.url || "popup");
 
   (async () => {
     try {
       const payload = message.payload || {};
-      const carbonGrams = await calculateEventCarbon(payload);
+      const carbonGrams = calculateEventCarbon(payload);
       const eventRecord = {
         timestamp: payload.timestamp || Date.now(),
-        type: payload.type,
-        platform: payload.platform,
+        type: payload.type || 'browsing',
+        platform: payload.platform || 'unknown',
         data: payload,
         carbonGrams,
       };
@@ -204,12 +183,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await storageManager.saveEvent(eventRecord);
       await updateDailySummary(eventRecord);
 
-      console.log("CurbYourCarbon: Event saved successfully", eventRecord);
+      console.log("CurbYourCarbon: Event saved -", carbonGrams, "g CO2 from", payload.platform);
 
       // Notify popup if it's open (ignore errors if nothing is listening)
       chrome.runtime.sendMessage({ type: "EVENT_SAVED", payload: eventRecord }, () => {
-        // Ignore "no receiver" errors - popup might not be open
-        chrome.runtime.lastError;
+        // Accessing lastError prevents console errors when popup is closed
+        if (chrome.runtime.lastError) {
+          // Popup not open, that's fine
+        }
       });
       
       sendResponse({
@@ -228,16 +209,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   })();
 
-  return true;
+  return true; // Keep message channel open for async response
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    console.log("CurbYourCarbon: Extension installed");
+    console.log("CurbYourCarbon: Extension installed - Universal tracking enabled");
   }
   if (details.reason === "update") {
-    console.log("CurbYourCarbon: Extension updated");
+    console.log("CurbYourCarbon: Extension updated to", chrome.runtime.getManifest().version);
   }
 });
 
-console.log("CurbYourCarbon: Service worker initialized");
+console.log("CurbYourCarbon: Service worker initialized with Performance API tracking");

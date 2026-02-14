@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "CurbYourCarbon",
-  "version": "1.0.0",
-  "description": "Track the environmental impact of your browsing activity",
+  "version": "2.0.0",
+  "description": "Track the carbon footprint of your browsing activity on any website",
   "permissions": ["storage", "tabs", "activeTab"],
   "host_permissions": [
-    "*://www.youtube.com/*",
-    "*://www.reddit.com/*",
-    "*://www.amazon.com/*",
+    "http://*/*",
+    "https://*/*",
     "https://app.electricitymaps.com/*"
   ],
   "background": {
@@ -16,25 +15,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://www.youtube.com/*"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": [
         "content-scripts/tracker-base.js",
-        "content-scripts/youtube-tracker.js"
-      ]
-    },
-    {
-      "matches": ["*://www.reddit.com/*"],
-      "js": [
-        "content-scripts/tracker-base.js",
-        "content-scripts/reddit-tracker.js"
-      ]
-    },
-    {
-      "matches": ["*://www.amazon.com/*"],
-      "js": [
-        "content-scripts/tracker-base.js",
-        "content-scripts/amazon-tracker.js"
-      ]
+        "content-scripts/universal-tracker.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "action": {
