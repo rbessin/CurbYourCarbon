@@ -153,3 +153,5 @@ export const STORE_NAMES = {
  *    - Data centers improve efficiency
  *    - Codecs improve compression
  */
+export const BASELINE_GRID_INTENSITY = 400;
+// grams CO2 per kWh - assumed global average baseline
