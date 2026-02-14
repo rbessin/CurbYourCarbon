@@ -114,6 +114,13 @@ export const calculateTotalCarbon = (data, options = {}) => {
   return +total.toFixed(2);
 };
 
+export const calculateCarbonRate = (data, options = {}) => {
+  const totalCarbon = calculateTotalCarbon(data, options);
+  const timeActive = data.timeActive || 0;
+  if (timeActive <= 0) return 0;
+  return +(totalCarbon / (timeActive / 60)).toFixed(2); // gCO2 per hour
+};
+
 /**
  * Aggregate event impacts by category.
  *

@@ -61,6 +61,11 @@ const getQuickInsight = (total) => {
 const renderPopup = async () => {
   try {
     const events = await storageManager.getEventsToday();
+    const mostRecentEvent = events.reduce((latest, event) => {
+      if (!latest) return event;
+      return (event.timestamp || 0) > (latest.timestamp || 0) ? event : latest;
+    }, null);
+    const carbonRate = mostRecentEvent?.carbonRate ? `${mostRecentEvent.carbonRate} g CO2/hr` : 'N/A';
     const categoryTotals = aggregateByCategory(events);
     const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
     const media = categoryTotals.media || 0;
@@ -75,6 +80,8 @@ const renderPopup = async () => {
     document.getElementById("value-browsing").textContent = formatGrams(browsing);
 
     document.getElementById("quick-insight").textContent = getQuickInsight(total);
+
+    document.getElementById("carbon-rate").textContent = `Current Carbon Rate: ${carbonRate}`;
 
     const equivalencies = calculateEquivalencies(total);
     let eqText = `${equivalencies.milesDriven.toFixed(1)} miles driven`;

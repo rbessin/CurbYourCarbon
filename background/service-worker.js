@@ -1,5 +1,6 @@
 import { StorageManager } from "../core/storage-manager.js";
 import {
+  calculateCarbonRate,
   calculateTotalCarbon,
   getDeviceEnergyConsumption,
 } from "../core/carbon-calculator.js";
@@ -338,8 +339,18 @@ const calculateEventCarbon = async (payload) => {
       ? +(baselineCarbon * gridMultiplier).toFixed(2)
       : baselineCarbon;
 
+  const baselineCarbonRate = calculateCarbonRate(payload, {
+    carbonIntensity: BASELINE_GRID_INTENSITY,
+    deviceWatts,
+  });
+  const carbonRate =
+    gridMultiplier !== null
+      ? +(baselineCarbonRate * gridMultiplier).toFixed(2)
+      : baselineCarbonRate;
+
   return {
     carbonGrams,
+    carbonRate,
     gridIntensity,
     gridZone: typeof gridData?.zone === "string" ? gridData.zone : null,
     gridMultiplier,
@@ -360,7 +371,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       const payload = message.payload || {};
       const gridContext = await calculateEventCarbon(payload);
-      const { carbonGrams } = gridContext;
+      const { carbonGrams, carbonRate } = gridContext;
 
       const eventRecord = {
         timestamp: payload.timestamp || Date.now(),
@@ -374,6 +385,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           gridIsEstimated: gridContext.gridIsEstimated,
         },
         carbonGrams,
+        carbonRate,
       };
 
       await storageManager.saveEvent(eventRecord);
@@ -384,6 +396,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         carbonGrams,
         "g CO2 from",
         payload.platform,
+        carbonRate,
+        'g CO2/hr',
       );
 
       // Notify popup if it's open (ignore errors if nothing is listening)
@@ -399,6 +413,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         ok: true,
         carbonGrams,
+        carbonRate,
         gridIntensity: gridContext.gridIntensity,
         gridZone: gridContext.gridZone,
         gridMultiplier: gridContext.gridMultiplier,
