@@ -1,102 +1,113 @@
 /**
- * Research-based carbon estimates and conversion factors for digital activities.
+ * Research-based carbon calculation constants using Performance API approach.
  * 
- * SOURCES & METHODOLOGY:
- * All estimates are based on peer-reviewed research and industry reports from:
- * - International Energy Agency (IEA, 2020-2024)
+ * CALCULATION METHODOLOGY:
+ * 1. Measure actual bytes transferred (Performance API)
+ * 2. Convert bytes → GB → kWh → CO2
+ * 3. Add device energy cost (placeholder for future detection)
+ * 4. Apply regional carbon intensity (placeholder for API integration)
+ * 
+ * SOURCES:
+ * - International Energy Agency (IEA, 2024)
  * - The Carbon Trust (2021-2022)
  * - Greenspector environmental impact studies (2021)
  * - Academic research on digital carbon footprints
- * 
- * See README.md for detailed research citations and methodology.
  */
 
 /**
- * VIDEO STREAMING (YouTube)
- * Based on IEA/Carbon Trust research showing ~36-55g CO2e per hour of streaming.
+ * DATA TRANSFER CARBON INTENSITY
  * 
- * Key insight: Resolution has LESS impact than commonly thought.
- * Device type (TV vs laptop vs phone) has MORE impact than resolution.
- * 
- * These estimates represent:
- * - Data transmission over networks
- * - Data center energy use
- * - End-user device energy consumption
- * - Global average electricity grid carbon intensity
- * 
- * Formula: Base streaming cost + resolution multiplier
- * - Base cost covers network/data center infrastructure
- * - Resolution multiplier accounts for additional data transfer
+ * Based on IEA research:
+ * - Modern networks: ~0.016 kWh per GB transferred
+ * - This includes: data centers, network infrastructure, transmission
  */
-export const CARBON_ESTIMATES = {
-  video: {
-    // Grams CO2e per hour of streaming
-    // Based on data: 4K uses ~7GB/hr, 1080p uses ~3GB/hr, 480p uses ~0.6GB/hr
-    "2160p": 55,   // 4K - highest quality, ~7GB data/hour
-    "1440p": 50,   // 2K - ~4GB data/hour
-    "1080p": 45,   // Full HD - ~3GB data/hour (most common)
-    "720p": 40,    // HD - ~1.5GB data/hour
-    "480p": 36,    // SD - ~0.6GB data/hour
-    "360p": 33     // Low - ~0.3GB data/hour
-  },
+export const NETWORK_ENERGY = {
+  kWhPerGB: 0.016,  // Energy consumed per GB of data transferred
+  // Source: IEA (2024), updated from 0.05 kWh/GB (2014) due to efficiency improvements
+};
 
-  /**
-   * SOCIAL MEDIA (Reddit, Instagram, etc.)
-   * Based on Greenspector 2021 study measuring actual app energy consumption.
-   * 
-   * Reddit: 2.48g CO2e per minute = 148.8g per hour
-   * Values converted to "per minute of active browsing" for consistency.
-   * 
-   * Additional factors:
-   * - Image loading adds data transfer
-   * - Video content significantly increases footprint
-   * - Infinite scroll preloads content
-   */
-  social: {
-    reddit: 2.48,        // Grams per minute of active browsing
-    scrolling: 0,        // Included in base rate (removed to avoid double-counting)
-    imageLoad: 0.05,     // Per image loaded (thumbnail/standard)
-    videoLoad: 0.15      // Per video loaded (embedded content)
-  },
-
-  /**
-   * E-COMMERCE (Amazon, online shopping)
-   * Based on research showing ~0.5g CO2 per website page view.
-   * 
-   * Key findings:
-   * - Average visitor views 7.8 pages before purchasing
-   * - Product images are data-intensive
-   * - High-res images (product zoom) use 2x bandwidth
-   * 
-   * Note: This covers ONLY digital browsing, not shipping emissions.
-   */
-  shopping: {
-    amazon: 1.0,           // Grams per minute of active browsing
-    productView: 0.5,      // Per product detail page visited
-    productCard: 0.15,     // Per product thumbnail loaded (search results)
-    imageLoad: 0.08,       // Per standard product image loaded
-    highResImage: 0.20,    // Per high-resolution image (zoom, gallery)
-    videoLoad: 0.40        // Per product video loaded
-  },
-
-  /**
-   * GENERAL IMAGE QUALITY ESTIMATES
-   * Used for cross-platform image loading calculations.
-   */
-  images: {
-    thumbnail: 0.02,    // Small thumbnails (<100KB)
-    standard: 0.08,     // Standard images (100-500KB)
-    highRes: 0.20       // High-resolution images (>500KB)
+/**
+ * GRID CARBON INTENSITY
+ * 
+ * Global average electricity grid emissions.
+ * This should be replaced with regional API data for precision.
+ * 
+ * FUTURE: Use IP geolocation + carbon intensity API
+ * - ElectricityMap API: Real-time grid carbon intensity by region
+ * - WattTime API: Marginal emissions data
+ */
+export const GRID_CARBON = {
+  globalAverage: 475,  // grams CO2 per kWh (global average)
+  
+  // Placeholders for regional API integration
+  // FUTURE: Fetch from API based on user location
+  regional: {
+    // Examples (grams CO2 per kWh):
+    // 'US-CA': 200,    // California (renewable-heavy)
+    // 'DE': 350,       // Germany
+    // 'PL': 650,       // Poland (coal-heavy)
+    // 'IS': 18,        // Iceland (geothermal)
   }
+};
+
+/**
+ * DEVICE ENERGY CONSUMPTION
+ * 
+ * Average energy consumption for displaying content.
+ * Based on Carbon Trust research showing device type matters MORE than resolution.
+ * 
+ * This is a PLACEHOLDER - actual device cannot be detected via JavaScript.
+ * 
+ * FUTURE OPTIONS:
+ * 1. Ask user to select device type in settings
+ * 2. Use User Agent + screen size heuristics
+ * 3. Provide range (min/max) instead of single estimate
+ */
+export const DEVICE_ENERGY = {
+  // Watts consumed while actively browsing (estimated average across devices)
+  averageBrowsing: 20,  // Mix of phone (5W), laptop (15W), desktop (30W), TV (80W)
+  
+  // Placeholders for future device-specific tracking
+  // FUTURE: Detect or ask user
+  byDevice: {
+    // 'phone': 5,      // Watts
+    // 'laptop': 15,    // Watts  
+    // 'desktop': 30,   // Watts
+    // 'tv': 80,        // Watts
+  }
+};
+
+/**
+ * RESOURCE TYPE WEIGHTS
+ * 
+ * Some resource types require more processing power than others.
+ * Video decoding is more CPU-intensive than displaying static images.
+ */
+export const RESOURCE_WEIGHTS = {
+  image: 1.0,      // Baseline
+  video: 1.5,      // Video decoding requires more CPU
+  script: 0.8,     // JavaScript execution
+  stylesheet: 0.5, // CSS is lightweight
+  document: 1.0,   // HTML pages
+  other: 0.7       // Fonts, misc
+};
+
+/**
+ * WEBSITE CATEGORIES
+ * Used for analytics and categorization only.
+ * Carbon calculation is now based on actual data, not category.
+ */
+export const WEBSITE_CATEGORIES = {
+  video: ['youtube.com', 'netflix.com', 'twitch.tv', 'vimeo.com', 'hulu.com'],
+  social: ['reddit.com', 'instagram.com', 'facebook.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com'],
+  shopping: ['amazon.com', 'ebay.com', 'etsy.com', 'walmart.com', 'target.com', 'aliexpress.com'],
+  news: ['nytimes.com', 'cnn.com', 'bbc.com', 'theguardian.com', 'reuters.com'],
+  productivity: ['gmail.com', 'docs.google.com', 'office.com', 'notion.so', 'slack.com']
 };
 
 /**
  * CARBON EQUIVALENCIES
  * Convert grams CO2 to relatable everyday activities.
- * 
- * Sources:
- * - EPA greenhouse gas equivalencies calculator
- * - USDA Forest Service carbon sequestration rates
  */
 export const EQUIVALENCIES = {
   gramsPerMileDriven: 404,      // Average car (EPA)
@@ -106,7 +117,6 @@ export const EQUIVALENCIES = {
 
 /**
  * DATABASE CONFIGURATION
- * IndexedDB storage for events and daily summaries.
  */
 export const DB_NAME = "CurbYourCarbonDB";
 
@@ -116,40 +126,26 @@ export const STORE_NAMES = {
 };
 
 /**
- * METHODOLOGY NOTES:
+ * CALCULATION FORMULA:
  * 
- * 1. CONSERVATIVE ESTIMATES:
- *    We use mid-range estimates from peer-reviewed sources.
- *    Real-world values may vary based on:
- *    - Geographic location (electricity grid carbon intensity)
- *    - Time of day (renewable energy availability)
- *    - Device efficiency
- *    - Network infrastructure
+ * Total CO2 = Network Transfer CO2 + Device Energy CO2
  * 
- * 2. WHAT'S INCLUDED:
- *    - Data transmission (network infrastructure)
- *    - Data center energy use
- *    - End-user device energy consumption
- *    - Average global electricity carbon intensity
+ * 1. NETWORK TRANSFER CO2:
+ *    MB transferred → GB → kWh → CO2
+ *    CO2 = (bytes / 1024 / 1024 / 1024) × kWhPerGB × gridCarbonIntensity
  * 
- * 3. WHAT'S NOT INCLUDED:
- *    - Device manufacturing (embodied carbon)
- *    - Network infrastructure manufacturing
- *    - Physical shipping (for e-commerce)
- *    - Content production emissions
+ * 2. DEVICE ENERGY CO2:
+ *    Minutes active → hours → kWh → CO2  
+ *    CO2 = (minutes / 60) × deviceWatts / 1000 × gridCarbonIntensity
  * 
- * 4. RESOLUTION VS DEVICE:
- *    Research shows device type has MORE impact than resolution:
- *    - Streaming on 50" TV: 4.5x more energy than laptop
- *    - Streaming on laptop: 2x more energy than phone
- *    - 4K vs 1080p: Only ~1.2x difference
- *    
- *    We cannot detect device type, so our estimates are conservative
- *    averages across all device types.
+ * 3. FUTURE ENHANCEMENTS:
+ *    - Replace gridCarbonIntensity with regional API data
+ *    - Replace deviceWatts with user-selected or detected device
+ *    - Add resource-type weights for video decoding overhead
  * 
- * 5. UPDATES:
- *    These values should be reviewed annually as:
- *    - Energy grids become greener
- *    - Data centers improve efficiency
- *    - Codecs improve compression
+ * EXAMPLE:
+ * Watching 10 minutes of YouTube (transferred 500MB):
+ * - Network: (500/1024) × 0.016 × 475 = 3.7g CO2
+ * - Device: (10/60) × 20W / 1000 × 475 = 1.6g CO2  
+ * - Total: 5.3g CO2
  */

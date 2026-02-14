@@ -31,44 +31,57 @@ const getRange = (rangeKey) => {
   return { start, end };
 };
 
+const categoryNames = {
+  video: "Video Streaming",
+  social: "Social Media",
+  shopping: "Online Shopping",
+  browsing: "General Browsing",
+  news: "News Sites",
+  productivity: "Productivity Apps"
+};
+
 // Calculate insights from usage patterns
 const generateInsights = (events, total, rangeKey) => {
   const insights = [];
-
+  
+  if (total === 0) {
+    insights.push({
+      type: "neutral",
+      text: "Start browsing to track your carbon footprint!"
+    });
+    return insights;
+  }
+  
   // Calculate per-day average
-  const dayCount = rangeKey === "today" ? 1 : rangeKey === "week" ? 7 : 30;
+  const dayCount = rangeKey === "today" ? 1 : (rangeKey === "week" ? 7 : 30);
   const avgPerDay = total / dayCount;
 
   // Calculate category breakdown
   const categoryTotals = aggregateByCategory(events);
-  const videoPercent = (categoryTotals.video / total) * 100;
-  const socialPercent = (categoryTotals.social / total) * 100;
-  const shoppingPercent = (categoryTotals.shopping / total) * 100;
+  
+  // Find dominant category
+  const sortedCategories = Object.entries(categoryTotals)
+    .filter(([, value]) => value > 0)
+    .sort(([, a], [, b]) => b - a);
+  
+  const [dominantCategory, dominantValue] = sortedCategories[0] || ['browsing', 0];
+  const dominantPercent = (dominantValue / total) * 100;
 
   // Insight 1: Daily average context
   if (rangeKey !== "today") {
     const avgFormatted = formatGrams(avgPerDay);
     insights.push({
       type: "neutral",
-      text: `You average ${avgFormatted} CO₂ per day over this period.`,
+      text: `You average ${avgFormatted} CO₂ per day over this period.`
     });
   }
 
   // Insight 2: Dominant category
-  if (videoPercent > 60) {
+  if (dominantPercent > 50) {
+    const categoryName = categoryNames[dominantCategory] || dominantCategory;
     insights.push({
       type: "info",
-      text: `Video streaming accounts for ${videoPercent.toFixed(0)}% of your carbon footprint. Consider lowering video quality to 720p or 480p to reduce emissions.`,
-    });
-  } else if (socialPercent > 60) {
-    insights.push({
-      type: "info",
-      text: `Social media browsing is your biggest contributor (${socialPercent.toFixed(0)}%). Taking breaks from scrolling can significantly reduce your footprint.`,
-    });
-  } else if (shoppingPercent > 60) {
-    insights.push({
-      type: "info",
-      text: `Online shopping accounts for ${shoppingPercent.toFixed(0)}% of your digital footprint. Thoughtful browsing and fewer product searches help.`,
+      text: `${categoryName} accounts for ${dominantPercent.toFixed(0)}% of your carbon footprint.`
     });
   }
 
@@ -77,20 +90,21 @@ const generateInsights = (events, total, rangeKey) => {
   if (avgPerDay < typicalDaily * 0.7) {
     insights.push({
       type: "positive",
-      text: `✨ You're doing great! Your usage is ${((1 - avgPerDay / typicalDaily) * 100).toFixed(0)}% below the average digital user.`,
+      text: `✨ You're doing great! Your usage is ${((1 - avgPerDay/typicalDaily) * 100).toFixed(0)}% below the average digital user.`
     });
   } else if (avgPerDay > typicalDaily * 1.5) {
     insights.push({
       type: "warning",
-      text: `Your digital carbon footprint is ${((avgPerDay / typicalDaily - 1) * 100).toFixed(0)}% higher than average. Small changes can make a big difference!`,
+      text: `Your digital carbon footprint is ${((avgPerDay/typicalDaily - 1) * 100).toFixed(0)}% higher than average. Small changes can make a big difference!`
     });
   }
 
-  // Insight 4: Total context
-  if (total > 5000) {
+  // Insight 4: Data transfer context
+  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
+  if (totalMB > 100) {
     insights.push({
       type: "neutral",
-      text: `This is equivalent to driving ${(total / 404).toFixed(1)} miles in a car.`,
+      text: `You've transferred ${totalMB.toFixed(0)} MB of data - about ${formatGrams(total)} worth of carbon.`
     });
   }
 
@@ -102,51 +116,54 @@ const generateRecommendations = (events, categoryTotals) => {
   const recommendations = [];
   const total = Object.values(categoryTotals).reduce((sum, v) => sum + v, 0);
 
-  // Video recommendations
-  if (categoryTotals.video > total * 0.3) {
-    const videoEvents = events.filter((e) => e.type === "video");
-    const highRes = videoEvents.filter(
-      (e) => e.data?.resolution === "1080p" || e.data?.resolution === "2160p",
-    ).length;
-    const totalVideo = videoEvents.length;
-
-    if (highRes / totalVideo > 0.7) {
-      const savings = categoryTotals.video * 0.3; // ~30% savings possible
-      recommendations.push({
-        action: "Lower video quality from 1080p to 720p",
-        impact: `Save ~${formatGrams(savings)} CO₂`,
-        description:
-          "On most mobile screens, 720p looks nearly identical to 1080p but uses 30% less data.",
-      });
-    }
+  if (total === 0) {
+    recommendations.push({
+      action: "Start tracking",
+      impact: "Build awareness",
+      description: "Browse any website to start measuring your carbon footprint with Performance API."
+    });
+    return recommendations;
   }
 
-  // Social media recommendations
-  if (categoryTotals.social > total * 0.3) {
+  // Calculate total data transferred
+  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
+  const videoMB = events.reduce((sum, e) => sum + (e.data?.videoMB || 0), 0);
+  const imageMB = events.reduce((sum, e) => sum + (e.data?.imageMB || 0), 0);
+
+  // Video-specific recommendations
+  if (categoryTotals.video > total * 0.3 && videoMB > 100) {
+    const savings = categoryTotals.video * 0.3; // ~30% savings possible
     recommendations.push({
-      action: "Set a daily social media time limit",
-      impact: `Save ~${formatGrams(categoryTotals.social * 0.25)} CO₂`,
-      description:
-        "Reducing scrolling by just 15 minutes per day can significantly lower your footprint.",
+      action: "Lower video quality",
+      impact: `Save ~${formatGrams(savings)} CO₂`,
+      description: "Streaming at 720p instead of 1080p can reduce data transfer by 30-40%."
     });
   }
 
-  // Shopping recommendations
-  if (categoryTotals.shopping > total * 0.2) {
+  // Data-heavy browsing
+  if (totalMB > 500) {
     recommendations.push({
-      action: "Browse more intentionally",
-      impact: `Save ~${formatGrams(categoryTotals.shopping * 0.3)} CO₂`,
-      description:
-        "Make a wishlist before browsing, and avoid endless scrolling through product pages.",
+      action: "Use ad blocker",
+      impact: `Save ~${formatGrams(total * 0.2)} CO₂`,
+      description: "Ads and trackers account for ~20% of page weight. Blocking them reduces data transfer."
     });
   }
 
-  // General recommendation
+  // Image-heavy sites
+  if (imageMB > totalMB * 0.5 && imageMB > 50) {
+    recommendations.push({
+      action: "Enable data saver mode",
+      impact: `Save ~${formatGrams(total * 0.15)} CO₂`,
+      description: "Many browsers offer data saver modes that compress images automatically."
+    });
+  }
+
+  // General recommendation if no specific ones
   if (recommendations.length === 0) {
     recommendations.push({
       action: "Keep up the good work!",
       impact: "Your usage is already efficient",
-      description: "Continue being mindful of your digital habits.",
+      description: "Continue being mindful of your digital habits."
     });
   }
 
@@ -161,28 +178,22 @@ const renderInsights = (insights) => {
     positive: "✓",
     warning: "⚠",
     info: "ℹ",
-    neutral: "→",
+    neutral: "→"
   };
 
-  container.innerHTML = insights
-    .map(
-      (insight) => `
+  container.innerHTML = insights.map(insight => `
     <div class="insight insight-${insight.type}">
       <span class="insight-icon">${typeIcons[insight.type]}</span>
       <span class="insight-text">${insight.text}</span>
     </div>
-  `,
-    )
-    .join("");
+  `).join("");
 };
 
 const renderRecommendations = (recommendations) => {
   const container = document.getElementById("recommendations");
   if (!container) return;
 
-  container.innerHTML = recommendations
-    .map(
-      (rec) => `
+  container.innerHTML = recommendations.map(rec => `
     <div class="recommendation">
       <div class="recommendation-header">
         <span class="recommendation-action">${rec.action}</span>
@@ -190,15 +201,13 @@ const renderRecommendations = (recommendations) => {
       </div>
       <div class="recommendation-description">${rec.description}</div>
     </div>
-  `,
-    )
-    .join("");
+  `).join("");
 };
 
 const renderEquivalencies = (total) => {
   const container = document.getElementById("equivalencies");
   const eq = calculateEquivalencies(total);
-
+  
   container.innerHTML = `
     <div class="equivalency-item">
       <div class="equivalency-value">${eq.milesDriven.toFixed(1)}</div>
@@ -226,39 +235,40 @@ const renderCategoryChart = (categoryTotals) => {
   const total = Object.values(categoryTotals).reduce((sum, v) => sum + v, 0);
   const hasData = total > 0;
 
+  // Build labels and data from actual categories present
+  const categories = Object.entries(categoryTotals)
+    .filter(([, value]) => value > 0)
+    .sort(([, a], [, b]) => b - a);
+  
+  const labels = categories.map(([key]) => categoryNames[key] || key);
+  const data = categories.map(([, value]) => value);
+  const colors = ["#3fa34d", "#4b8f59", "#6fa36c", "#81a87c", "#9bc29c", "#b5d9b5"];
+
   categoryChart = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: ["Video Streaming", "Social Media", "Online Shopping"],
+      labels: hasData ? labels : ["No data yet"],
       datasets: [
         {
-          data: hasData
-            ? [
-                categoryTotals.video,
-                categoryTotals.social,
-                categoryTotals.shopping,
-              ]
-            : [1, 1, 1],
-          backgroundColor: hasData
-            ? ["#3fa34d", "#4b8f59", "#6fa36c"]
-            : ["#e0e0e0", "#e0e0e0", "#e0e0e0"],
+          data: hasData ? data : [1],
+          backgroundColor: hasData ? colors.slice(0, data.length) : ["#e0e0e0"],
         },
       ],
     },
     options: {
-      plugins: {
+      plugins: { 
         legend: { position: "bottom" },
         tooltip: {
           enabled: hasData,
           callbacks: {
-            label: function (context) {
-              const label = context.label || "";
+            label: function(context) {
+              const label = context.label || '';
               const value = context.parsed || 0;
               const percent = ((value / total) * 100).toFixed(1);
               return `${label}: ${formatGrams(value)} (${percent}%)`;
-            },
-          },
-        },
+            }
+          }
+        }
       },
     },
   });
@@ -272,9 +282,14 @@ const renderPlatformChart = (platformTotals) => {
     platformChart.destroy();
   }
 
-  const labels = Object.keys(platformTotals);
-  const data = Object.values(platformTotals);
-  const hasData = data.length > 0 && data.some((v) => v > 0);
+  const sortedPlatforms = Object.entries(platformTotals)
+    .filter(([, value]) => value > 0)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10); // Top 10 platforms
+
+  const labels = sortedPlatforms.map(([key]) => key);
+  const data = sortedPlatforms.map(([, value]) => value);
+  const hasData = data.length > 0;
 
   platformChart = new Chart(ctx, {
     type: "bar",
@@ -289,16 +304,20 @@ const renderPlatformChart = (platformTotals) => {
       ],
     },
     options: {
-      scales: { y: { beginAtZero: true } },
-      plugins: {
+      indexAxis: hasData && labels.length > 5 ? 'y' : 'x', // Horizontal bars if many platforms
+      scales: { 
+        x: hasData && labels.length > 5 ? { beginAtZero: true } : {},
+        y: hasData && labels.length <= 5 ? { beginAtZero: true } : {}
+      },
+      plugins: { 
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: function (context) {
-              return `${formatGrams(context.parsed.y)} CO₂`;
-            },
-          },
-        },
+            label: function(context) {
+              return `${formatGrams(context.parsed.y || context.parsed.x)} CO₂`;
+            }
+          }
+        }
       },
     },
   });
@@ -320,7 +339,7 @@ const renderTimelineChart = (events) => {
 
   const labels = Object.keys(grouped);
   const data = Object.values(grouped);
-  const hasData = data.length > 0 && data.some((v) => v > 0);
+  const hasData = data.length > 0 && data.some(v => v > 0);
 
   timelineChart = new Chart(ctx, {
     type: "line",
@@ -331,9 +350,7 @@ const renderTimelineChart = (events) => {
           label: "CO₂ (g)",
           data: hasData ? data : [0],
           borderColor: hasData ? "#2f7d32" : "#e0e0e0",
-          backgroundColor: hasData
-            ? "rgba(47, 125, 50, 0.2)"
-            : "rgba(224, 224, 224, 0.2)",
+          backgroundColor: hasData ? "rgba(47, 125, 50, 0.2)" : "rgba(224, 224, 224, 0.2)",
           fill: true,
           tension: 0.3,
         },
@@ -344,12 +361,12 @@ const renderTimelineChart = (events) => {
       plugins: {
         tooltip: {
           callbacks: {
-            label: function (context) {
+            label: function(context) {
               return `${formatGrams(context.parsed.y)} CO₂`;
-            },
-          },
-        },
-      },
+            }
+          }
+        }
+      }
     },
   });
 };
@@ -366,10 +383,11 @@ const renderDashboard = async (rangeKey) => {
     );
 
     const platformTotals = events.reduce((acc, event) => {
-      if (!acc[event.platform]) {
-        acc[event.platform] = 0;
+      const platform = event.platform || 'unknown';
+      if (!acc[platform]) {
+        acc[platform] = 0;
       }
-      acc[event.platform] += event.carbonGrams || 0;
+      acc[platform] += event.carbonGrams || 0;
       return acc;
     }, {});
 

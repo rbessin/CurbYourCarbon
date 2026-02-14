@@ -19,9 +19,18 @@ const updateBars = (categoryTotals, total) => {
   const shoppingBar = document.getElementById("bar-shopping");
 
   const safeTotal = total > 0 ? total : 1;
-  videoBar.style.width = `${(categoryTotals.video / safeTotal) * 100}%`;
-  socialBar.style.width = `${(categoryTotals.social / safeTotal) * 100}%`;
-  shoppingBar.style.width = `${(categoryTotals.shopping / safeTotal) * 100}%`;
+  
+  // Support all categories, but show top 3 in popup
+  const video = categoryTotals.video || 0;
+  const social = categoryTotals.social || 0;
+  const shopping = categoryTotals.shopping || 0;
+  const other = (categoryTotals.browsing || 0) + (categoryTotals.news || 0) + (categoryTotals.productivity || 0);
+  
+  videoBar.style.width = `${(video / safeTotal) * 100}%`;
+  socialBar.style.width = `${(social / safeTotal) * 100}%`;
+  shoppingBar.style.width = `${((shopping + other) / safeTotal) * 100}%`;
+  
+  return { video, social, shopping, other };
 };
 
 const getQuickInsight = (total, categoryTotals) => {
@@ -29,7 +38,7 @@ const getQuickInsight = (total, categoryTotals) => {
   const typical = 1000;
   
   if (total === 0) {
-    return "Start browsing to track your footprint!";
+    return "Browse any website to start tracking!";
   }
   
   if (total < typical * 0.5) {
@@ -55,19 +64,12 @@ const renderPopup = async () => {
     // Update main total
     document.getElementById("today-total").textContent = formatGrams(total);
     
-    // Update category values
-    document.getElementById("value-video").textContent = formatGrams(
-      categoryTotals.video,
-    );
-    document.getElementById("value-social").textContent = formatGrams(
-      categoryTotals.social,
-    );
-    document.getElementById("value-shopping").textContent = formatGrams(
-      categoryTotals.shopping,
-    );
-
-    // Update bars
-    updateBars(categoryTotals, total);
+    // Update category values and bars
+    const { video, social, shopping, other } = updateBars(categoryTotals, total);
+    
+    document.getElementById("value-video").textContent = formatGrams(video);
+    document.getElementById("value-social").textContent = formatGrams(social);
+    document.getElementById("value-shopping").textContent = formatGrams(shopping + other);
 
     // Update insight
     const insight = getQuickInsight(total, categoryTotals);
