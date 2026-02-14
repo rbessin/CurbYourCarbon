@@ -73,7 +73,7 @@ const updateTreeVisualization = (totalGrams) => {
   if (fillElement) {
     // Calculate how much to reveal from the bottom
     // inset(top right bottom left) - we adjust the top value to reveal from bottom
-    const topInset = 100 - percentage/1.225; // adjust a bit to fit the tree outline exactly
+    const topInset = 100 - percentage/1.285 - 3.65; // adjust a bit to fit the tree outline exactly
     fillElement.style.clipPath = `inset(${topInset}% 0 0 0)`;
     
     // Change color if over capacity
