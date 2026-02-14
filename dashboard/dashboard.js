@@ -1,9 +1,9 @@
 import { StorageManager } from "../core/storage-manager.js";
 import { aggregateByCategory, calculateEquivalencies } from "../core/carbon-calculator.js";
+import { BASELINE_GRID_INTENSITY, DEVICE_ENERGY } from "../core/constants.js";
 
 const storageManager = new StorageManager();
 let categoryChart = null;
-let timelineChart = null;
 let platformChart = null;
 
 const formatGrams = (grams) => {
@@ -27,82 +27,185 @@ const categoryNames = {
   browsing: "General Browsing"
 };
 
-const generateInsights = (events, total, rangeKey) => {
-  const insights = [];
-  if (total === 0) {
-    insights.push({ type: "neutral", text: "Start browsing to track your carbon footprint!" });
-    return insights;
+// Get cached location and grid info from storage (set by service worker)
+const getLocationAndGridInfo = async () => {
+  try {
+    // Get cached grid intensity and location from storage (same keys as service worker)
+    const result = await chrome.storage.local.get([
+      'gridIntensityCache',
+      'lastKnownLocation'
+    ]);
+    
+    const gridCache = result.gridIntensityCache;
+    const locationCache = result.lastKnownLocation;
+    
+    let locationText = 'Location not detected';
+    let gridIntensityText = `${BASELINE_GRID_INTENSITY} gCO₂/kWh (Global Average)`;
+    let gridIntensity = BASELINE_GRID_INTENSITY;
+    
+    // Display location if available
+    if (locationCache?.lat && locationCache?.lon) {
+      locationText = `Lat: ${locationCache.lat.toFixed(2)}, Lon: ${locationCache.lon.toFixed(2)}`;
+    }
+    
+    // Display grid intensity if available and fresh
+    if (gridCache?.intensity && typeof gridCache.intensity === 'number') {
+      gridIntensity = gridCache.intensity;
+      
+      const percentDiff = ((BASELINE_GRID_INTENSITY - gridIntensity) / BASELINE_GRID_INTENSITY * 100);
+      const comparison = percentDiff > 0 
+        ? `${Math.abs(percentDiff).toFixed(0)}% cleaner than global avg` 
+        : `${Math.abs(percentDiff).toFixed(0)}% dirtier than global avg`;
+      
+      const zoneText = gridCache.zone ? ` (${gridCache.zone})` : '';
+      // Use HTML for better formatting with styled second line
+      const mainText = `${gridIntensity.toFixed(0)} gCO₂/kWh${zoneText}`;
+      const comparisonText = `<span style="font-size: 0.85rem; opacity: 0.9;">${comparison}</span>`;
+      gridIntensityText = `${mainText}\n${comparisonText}`;
+      
+      console.log('CurbYourCarbon: Using cached grid intensity:', gridIntensity, 'gCO₂/kWh');
+    } else {
+      console.log('CurbYourCarbon: No grid intensity cache, using global average');
+    }
+    
+    // Update displays
+    document.getElementById('location-text').textContent = locationText;
+    document.getElementById('grid-intensity-text').innerHTML = gridIntensityText;
+    
+    return { locationText, gridIntensity };
+  } catch (error) {
+    console.error('CurbYourCarbon: Error reading location/grid cache:', error);
+    document.getElementById('location-text').textContent = 'Unable to load location';
+    document.getElementById('grid-intensity-text').innerHTML = `${BASELINE_GRID_INTENSITY} gCO₂/kWh (Global Average)`;
+    return { locationText: 'Unknown', gridIntensity: BASELINE_GRID_INTENSITY };
   }
-
-  const dayCount = rangeKey === "today" ? 1 : (rangeKey === "week" ? 7 : 30);
-  const avgPerDay = total / dayCount;
-  const categoryTotals = aggregateByCategory(events);
-  const sortedCategories = Object.entries(categoryTotals)
-    .filter(([, value]) => value > 0)
-    .sort(([, a], [, b]) => b - a);
-  const [dominantCategory, dominantValue] = sortedCategories[0] || ['browsing', 0];
-  const dominantPercent = (dominantValue / total) * 100;
-
-  if (rangeKey !== "today") {
-    insights.push({ type: "neutral", text: `You average ${formatGrams(avgPerDay)} CO₂ per day over this period.` });
-  }
-
-  if (dominantPercent > 50) {
-    const categoryName = categoryNames[dominantCategory] || dominantCategory;
-    insights.push({ type: "info", text: `${categoryName} accounts for ${dominantPercent.toFixed(0)}% of your carbon footprint.` });
-  }
-
-  const typicalDaily = 1000;
-  if (avgPerDay < typicalDaily * 0.7) {
-    insights.push({ type: "positive", text: `✨ You're doing great! Your usage is ${((1 - avgPerDay/typicalDaily) * 100).toFixed(0)}% below the average digital user.` });
-  } else if (avgPerDay > typicalDaily * 1.5) {
-    insights.push({ type: "warning", text: `Your digital carbon footprint is ${((avgPerDay/typicalDaily - 1) * 100).toFixed(0)}% higher than average. Small changes can make a big difference!` });
-  }
-
-  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
-  if (totalMB > 100) {
-    insights.push({ type: "neutral", text: `You've transferred ${totalMB.toFixed(0)} MB of data - about ${formatGrams(total)} worth of carbon.` });
-  }
-
-  return insights;
 };
 
-const generateRecommendations = (events, categoryTotals) => {
-  const recommendations = [];
-  const total = Object.values(categoryTotals).reduce((sum, v) => sum + v, 0);
-  if (total === 0) {
-    recommendations.push({ action: "Start tracking", impact: "Build awareness", description: "Browse any website to start measuring your carbon footprint with Performance API." });
-    return recommendations;
+// Update device info display
+const updateDeviceInfo = async () => {
+  try {
+    const result = await chrome.storage.sync.get(['deviceType', 'detectedDevice']);
+    const deviceType = result.deviceType || 'auto';
+    const detectedDevice = result.detectedDevice || 'laptop';
+    
+    const deviceNames = {
+      phone: '📱 Phone (5W)',
+      tablet: '📱 Tablet (10W)',
+      laptop: '💻 Laptop (20W)',
+      desktop: '🖥️ Desktop (40W)',
+      tv: '📺 TV (100W)',
+      auto: `🔍 Auto (${detectedDevice} detected)`
+    };
+    
+    document.getElementById('device-info-text').textContent = deviceNames[deviceType] || deviceNames.auto;
+  } catch (error) {
+    console.warn('Could not load device info', error);
   }
+};
 
+// Update calculation formulas - show how service worker actually calculates
+const updateCalculationFormulas = (events, total) => {
+  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
+  const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
+  
+  // Get the actual grid intensity used (from first event with grid data)
+  const eventWithGrid = events.find(e => e.data?.gridIntensity);
+  const actualIntensity = eventWithGrid?.data?.gridIntensity || BASELINE_GRID_INTENSITY;
+  const gridMultiplier = eventWithGrid?.data?.gridMultiplier || 1.0;
+  
+  // Network formula
+  const networkKwh = (totalMB / 1024) * 0.016;
+  document.getElementById('network-formula').textContent = `${totalMB.toFixed(1)} MB transferred`;
+  
+  // Energy formula
+  document.getElementById('energy-formula').textContent = `Network energy = ${networkKwh.toFixed(4)} kWh`;
+  
+  // Device formula (use average 20W for display)
+  const deviceKwh = (totalTime / 60) * (20 / 1000);
+  document.getElementById('device-formula').textContent = `${totalTime.toFixed(1)} min × 20W = ${deviceKwh.toFixed(4)} kWh`;
+  
+  // Carbon formula - explain the actual methodology used
+  // Service worker calculates with baseline (400) then multiplies by regional factor
+  const totalKwh = networkKwh + deviceKwh;
+  const baselineCarbon = totalKwh * BASELINE_GRID_INTENSITY;
+  const adjustedCarbon = baselineCarbon * gridMultiplier;
+  
+  document.getElementById('intensity-value').textContent = BASELINE_GRID_INTENSITY;
+  
+  // Show the actual stored total (which may differ slightly due to rounding/video overhead)
+  document.getElementById('final-carbon').textContent = total.toFixed(1);
+};
+
+// Update education comparisons
+const updateEducationComparisons = (events, total) => {
+  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
+  const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
+  
+  // Comparison to average user
+  const avgDaily = 1000; // 1000g per day
+  const percentDiff = ((total - avgDaily) / avgDaily * 100);
+  
+  let vsAverageText;
+  if (total < avgDaily * 0.8) {
+    vsAverageText = `${Math.abs(percentDiff).toFixed(0)}% below average 🎉`;
+  } else if (total > avgDaily * 1.2) {
+    vsAverageText = `${percentDiff.toFixed(0)}% above average`;
+  } else {
+    vsAverageText = 'About average';
+  }
+  
+  document.getElementById('vs-average').textContent = vsAverageText;
+  document.getElementById('total-mb').textContent = `${totalMB.toFixed(1)} MB`;
+  document.getElementById('total-time').textContent = totalTime.toFixed(0);
+};
+
+// Update modern equivalencies display
+const updateModernEquivalencies = (total) => {
+  const eq = calculateEquivalencies(total);
+  document.getElementById('eq-miles').textContent = eq.milesDriven.toFixed(2);
+  document.getElementById('eq-phones').textContent = eq.phonesCharged.toFixed(1);
+  document.getElementById('eq-trees').textContent = (eq.treesNeeded * 365).toFixed(1);
+};
+
+const generateRecommendations = (events, categoryTotals, total) => {
+  const recommendations = [];
+  
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const videoMB = events.reduce((sum, e) => sum + (e.data?.videoMB || 0), 0);
 
   if (categoryTotals.media > total * 0.3 && videoMB > 100) {
-    recommendations.push({ action: "Lower video quality", impact: `Save ~${formatGrams(categoryTotals.media * 0.3)} CO₂`, description: "Streaming at 720p instead of 1080p can reduce data transfer by 30-40%." });
+    recommendations.push({ 
+      action: "Lower video quality", 
+      impact: `Save ~${formatGrams(categoryTotals.media * 0.3)} CO₂`, 
+      description: "Streaming at 720p instead of 1080p can reduce data transfer by 30-40%." 
+    });
   }
 
   if (totalMB > 500) {
-    recommendations.push({ action: "Use ad blocker", impact: `Save ~${formatGrams(total * 0.2)} CO₂`, description: "Ads and trackers account for ~20% of page weight. Blocking them reduces data transfer." });
+    recommendations.push({ 
+      action: "Use ad blocker", 
+      impact: `Save ~${formatGrams(total * 0.2)} CO₂`, 
+      description: "Ads and trackers account for ~20% of page weight. Blocking them reduces data transfer." 
+    });
+  }
+
+  if (categoryTotals.media > total * 0.5) {
+    recommendations.push({ 
+      action: "Reduce autoplay", 
+      impact: `Save ~${formatGrams(categoryTotals.media * 0.2)} CO₂`, 
+      description: "Disable autoplay on videos and social media to reduce unnecessary data transfer." 
+    });
   }
 
   if (recommendations.length === 0) {
-    recommendations.push({ action: "Keep up the good work!", impact: "Your usage is already efficient", description: "Continue being mindful of your digital habits." });
+    recommendations.push({ 
+      action: "Keep up the good work!", 
+      impact: "Your usage is already efficient", 
+      description: "Continue being mindful of your digital habits." 
+    });
   }
 
   return recommendations;
-};
-
-const renderInsights = (insights) => {
-  const container = document.getElementById("insights");
-  if (!container) return;
-  const typeIcons = { positive: "✓", warning: "⚠", info: "ℹ", neutral: "→" };
-  container.innerHTML = insights.map(insight => `
-    <div class="insight insight-${insight.type}">
-      <span class="insight-icon">${typeIcons[insight.type]}</span>
-      <span class="insight-text">${insight.text}</span>
-    </div>
-  `).join("");
 };
 
 const renderRecommendations = (recommendations) => {
@@ -119,25 +222,6 @@ const renderRecommendations = (recommendations) => {
   `).join("");
 };
 
-const renderEquivalencies = (total) => {
-  const container = document.getElementById("equivalencies");
-  const eq = calculateEquivalencies(total);
-  container.innerHTML = `
-    <div class="equivalency-item">
-      <div class="equivalency-value">${eq.milesDriven.toFixed(1)}</div>
-      <div class="equivalency-label">miles driven</div>
-    </div>
-    <div class="equivalency-item">
-      <div class="equivalency-value">${eq.phonesCharged.toFixed(0)}</div>
-      <div class="equivalency-label">phones charged</div>
-    </div>
-    <div class="equivalency-item">
-      <div class="equivalency-value">${(eq.treesNeeded * 365).toFixed(2)}</div>
-      <div class="equivalency-label">tree-days needed</div>
-    </div>
-  `;
-};
-
 const renderCategoryChart = (categoryTotals) => {
   const ctx = document.getElementById("category-chart");
   if (!window.Chart || !ctx) return;
@@ -150,13 +234,17 @@ const renderCategoryChart = (categoryTotals) => {
     .sort(([, a], [, b]) => b - a);
   const labels = categories.map(([key]) => categoryNames[key] || key);
   const data = categories.map(([, value]) => value);
-  const colors = ["#3fa34d", "#4b8f59", "#6fa36c"];
+  // Yellow-green, green, blue-green for better distinction while staying eco-friendly
+  const colors = ["#7CB342", "#43A047", "#26A69A"];
 
   categoryChart = new Chart(ctx, {
     type: "doughnut",
     data: {
       labels: hasData ? labels : ["No data yet"],
-      datasets: [{ data: hasData ? data : [1], backgroundColor: hasData ? colors.slice(0, data.length) : ["#e0e0e0"] }],
+      datasets: [{ 
+        data: hasData ? data : [1], 
+        backgroundColor: hasData ? colors.slice(0, data.length) : ["#e0e0e0"] 
+      }],
     },
     options: {
       plugins: {
@@ -186,6 +274,7 @@ const renderPlatformChart = (platformTotals) => {
     .filter(([, value]) => value > 0)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
+  
   const labels = sortedPlatforms.map(([key]) => key);
   const data = sortedPlatforms.map(([, value]) => value);
   const hasData = data.length > 0;
@@ -194,7 +283,11 @@ const renderPlatformChart = (platformTotals) => {
     type: "bar",
     data: {
       labels: hasData ? labels : ["No data yet"],
-      datasets: [{ label: "CO₂ (g)", data: hasData ? data : [0], backgroundColor: hasData ? "#2f7d32" : "#e0e0e0" }],
+      datasets: [{ 
+        label: "CO₂ (g)", 
+        data: hasData ? data : [0], 
+        backgroundColor: hasData ? "#2f7d32" : "#e0e0e0" 
+      }],
     },
     options: {
       indexAxis: hasData && labels.length > 5 ? 'y' : 'x',
@@ -207,7 +300,8 @@ const renderPlatformChart = (platformTotals) => {
         tooltip: {
           callbacks: {
             label: function(context) {
-              return `${formatGrams(context.parsed.y || context.parsed.x)} CO₂`;
+              const value = context.parsed.y || context.parsed.x;
+              return `${formatGrams(value)} CO₂`;
             }
           }
         }
@@ -216,66 +310,63 @@ const renderPlatformChart = (platformTotals) => {
   });
 };
 
-const renderTimelineChart = (events) => {
-  const ctx = document.getElementById("timeline-chart");
-  if (!window.Chart || !ctx) return;
-  if (timelineChart) timelineChart.destroy();
-
-  const grouped = events.reduce((acc, event) => {
-    const dateKey = new Date(event.timestamp).toLocaleDateString();
-    acc[dateKey] = (acc[dateKey] || 0) + (event.carbonGrams || 0);
-    return acc;
-  }, {});
-  const labels = Object.keys(grouped);
-  const data = Object.values(grouped);
-  const hasData = data.length > 0 && data.some(v => v > 0);
-
-  timelineChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: hasData ? labels : ["No data yet"],
-      datasets: [{
-        label: "CO₂ (g)",
-        data: hasData ? data : [0],
-        borderColor: hasData ? "#2f7d32" : "#e0e0e0",
-        backgroundColor: hasData ? "rgba(47, 125, 50, 0.2)" : "rgba(224, 224, 224, 0.2)",
-        fill: true,
-        tension: 0.3,
-      }],
-    },
-    options: {
-      scales: { y: { beginAtZero: true } },
-      plugins: {
-        tooltip: {
-          callbacks: { label: function(context) { return `${formatGrams(context.parsed.y)} CO₂`; } }
-        }
-      }
-    },
-  });
-};
-
 const renderDashboard = async (rangeKey) => {
   try {
     const { start, end } = getRange(rangeKey);
     const events = await storageManager.getEventsInRange(start, end);
+    
+    console.log('CurbYourCarbon: Loaded events:', events.length);
+    console.log('CurbYourCarbon: First few events:', events.slice(0, 3));
+    
+    // Aggregate by category
     const categoryTotals = aggregateByCategory(events);
     const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
-    const platformTotals = events.reduce((acc, event) => {
+    
+    // Aggregate by platform
+    const platformTotals = {};
+    events.forEach((event, index) => {
       const platform = event.platform || 'unknown';
-      if (!acc[platform]) acc[platform] = 0;
-      acc[platform] += event.carbonGrams || 0;
-      return acc;
-    }, {});
+      const carbon = event.carbonGrams || 0;
+      
+      if (index < 3) {
+        console.log(`CurbYourCarbon: Event ${index}: platform=${platform}, carbon=${carbon}g`);
+      }
+      
+      if (!platformTotals[platform]) {
+        platformTotals[platform] = 0;
+      }
+      platformTotals[platform] += carbon;
+    });
+    
+    // Verify the platform totals sum matches the category totals sum
+    const platformSum = Object.values(platformTotals).reduce((sum, v) => sum + v, 0);
+    console.log('CurbYourCarbon: Aggregated data:');
+    console.log('  - Total from categories:', total.toFixed(2), 'g');
+    console.log('  - Total from platforms:', platformSum.toFixed(2), 'g');
+    console.log('  - Categories:', categoryTotals);
+    console.log('  - Platforms:', platformTotals);
 
+    // Get cached location and grid info
+    await getLocationAndGridInfo();
+    
+    // Update all displays with ACTUAL data
     document.getElementById("total-impact").textContent = `${formatGrams(total)} CO₂`;
-    renderInsights(generateInsights(events, total, rangeKey));
-    renderRecommendations(generateRecommendations(events, categoryTotals));
-    renderEquivalencies(total);
+    updateCalculationFormulas(events, total);
+    updateEducationComparisons(events, total);
+    updateModernEquivalencies(total);
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
-    renderTimelineChart(events);
+    
+    // Only show recommendations if total > 50g
+    const recommendationsSection = document.getElementById("recommendations-section");
+    if (total > 50) {
+      recommendationsSection.style.display = "block";
+      renderRecommendations(generateRecommendations(events, categoryTotals, total));
+    } else {
+      recommendationsSection.style.display = "none";
+    }
   } catch (error) {
-    console.warn("Failed to render dashboard", error);
+    console.error("CurbYourCarbon: Failed to render dashboard", error);
   }
 };
 
@@ -314,6 +405,7 @@ const saveDeviceSetting = async (deviceType) => {
       await chrome.storage.sync.set({ deviceType: 'auto' });
       console.log('CurbYourCarbon: Device set to auto-detect');
     }
+    updateDeviceInfo(); // Update the display
     alert('Device setting saved!');
   } catch (error) {
     console.warn('Could not save device setting', error);
@@ -339,12 +431,15 @@ const saveApiKey = async () => {
     if (apiKey) {
       await chrome.storage.local.set({ 'ELECTRICITY_MAPS_TOKEN': apiKey });
       console.log('CurbYourCarbon: ElectricityMap API key saved');
-      alert('API key saved! Regional carbon intensity will be used on next tracking event.');
+      alert('API key saved! Grid intensity will update on next tracking event.');
     } else {
       await chrome.storage.local.remove('ELECTRICITY_MAPS_TOKEN');
       console.log('CurbYourCarbon: API key removed');
-      alert('API key removed. Using baseline intensity.');
+      alert('API key removed. Using global average intensity.');
     }
+    // Refresh the dashboard to show updated info
+    const active = document.querySelector(".range-toggle .active");
+    renderDashboard(active ? active.dataset.range : "today");
   } catch (error) {
     console.warn('Could not save API key', error);
     alert('Error saving API key');
@@ -355,6 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindRangeButtons();
   loadDeviceSetting();
   loadApiKey();
+  updateDeviceInfo();
   renderDashboard("today");
   
   // Event listeners for settings

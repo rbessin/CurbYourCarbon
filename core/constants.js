@@ -14,11 +14,11 @@ export const NETWORK_ENERGY = {
 
 /**
  * GRID CARBON INTENSITY
+ * 
+ * BASELINE_GRID_INTENSITY is used as the standard for all calculations.
+ * Regional adjustments are applied as multipliers relative to this baseline.
  */
-export const GRID_CARBON = {
-  globalAverage: 475, // grams CO2 per kWh (global average)
-  regional: {}, // Placeholder for API integration
-};
+export const BASELINE_GRID_INTENSITY = 475; // grams CO2 per kWh (global average baseline)
 
 /**
  * DEVICE ENERGY CONSUMPTION
@@ -185,5 +185,5 @@ export const STORE_NAMES = {
  *    CO2 = videoBytes × 0.5 × network formula
  *    (Video decoding requires ~50% extra processing power)
  */
-export const BASELINE_GRID_INTENSITY = 400;
-// grams CO2 per kWh - assumed global average baseline
+// BASELINE_GRID_INTENSITY moved to top of file for clarity
+// All calculations use 475 gCO2/kWh as the global average baseline
