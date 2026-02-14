@@ -151,7 +151,10 @@
     // If video is already playing, initialize tracking state
     if (isAlreadyPlaying) {
       updateResolution();
-      state.playStart = Date.now();
+      if (!state.playStart) {
+        state.playStart = Date.now();
+        console.log("CurbYourCarbon: Initialized playStart because video was already playing");
+      }
       console.log("CurbYourCarbon: Started tracking already-playing video at", state.resolution);
     }
   };
