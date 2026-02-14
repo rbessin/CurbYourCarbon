@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "CurbYourCarbon",
+  "version": "1.0.0",
+  "description": "Track the environmental impact of your browsing activity",
+  "permissions": ["storage", "tabs", "activeTab"],
+  "host_permissions": [
+    "*://www.youtube.com/*",
+    "*://www.reddit.com/*",
+    "*://www.amazon.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": [
+        "content-scripts/tracker-base.js",
+        "content-scripts/youtube-tracker.js"
+      ],
+      "type": "module"
+    },
+    {
+      "matches": ["*://www.reddit.com/*"],
+      "js": [
+        "content-scripts/tracker-base.js",
+        "content-scripts/reddit-tracker.js"
+      ],
+      "type": "module"
+    },
+    {
+      "matches": ["*://www.amazon.com/*"],
+      "js": [
+        "content-scripts/tracker-base.js",
+        "content-scripts/amazon-tracker.js"
+      ],
+      "type": "module"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "128": "assets/icons/icon128.png"
+  }
+}

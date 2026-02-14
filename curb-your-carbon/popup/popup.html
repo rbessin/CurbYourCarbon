@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurbYourCarbon</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <section class="summary">
+        <h1>Today</h1>
+        <div class="total" id="today-total">0 g</div>
+        <p class="label">Total CO2 impact</p>
+      </section>
+
+      <section class="breakdown">
+        <div class="breakdown-item">
+          <span>Video</span>
+          <div class="bar">
+            <div class="bar-fill bar-video" id="bar-video"></div>
+          </div>
+          <span class="value" id="value-video">0 g</span>
+        </div>
+        <div class="breakdown-item">
+          <span>Social</span>
+          <div class="bar">
+            <div class="bar-fill bar-social" id="bar-social"></div>
+          </div>
+          <span class="value" id="value-social">0 g</span>
+        </div>
+        <div class="breakdown-item">
+          <span>Shopping</span>
+          <div class="bar">
+            <div class="bar-fill bar-shopping" id="bar-shopping"></div>
+          </div>
+          <span class="value" id="value-shopping">0 g</span>
+        </div>
+      </section>
+
+      <section class="equivalency">
+        <h2>Equivalency</h2>
+        <p id="equivalency-text">0 miles driven</p>
+      </section>
+
+      <button id="dashboard-button" class="dashboard-button">View Dashboard</button>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
