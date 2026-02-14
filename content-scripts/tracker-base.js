@@ -12,19 +12,34 @@ const sendEventToBackground = (eventData) => {
   return new Promise((resolve) => {
     // Check if extension context is valid
     if (!chrome.runtime?.id) {
-      console.log("CurbYourCarbon: Extension reloaded/disabled, data will send on next navigation");
-      resolve({ ok: false, error: "Extension context invalidated", shouldRetry: true });
+      console.log(
+        "CurbYourCarbon: Extension reloaded/disabled, data will send on next navigation",
+      );
+      resolve({
+        ok: false,
+        error: "Extension context invalidated",
+        shouldRetry: true,
+      });
       return;
     }
 
-    chrome.runtime.sendMessage({ type: "TRACK_EVENT", payload: eventData }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.log("CurbYourCarbon: Service worker inactive, will retry later");
-        resolve({ ok: false, error: chrome.runtime.lastError.message, shouldRetry: true });
-        return;
-      }
-      resolve(response || { ok: true });
-    });
+    chrome.runtime.sendMessage(
+      { type: "TRACK_EVENT", payload: eventData },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.log(
+            "CurbYourCarbon: Service worker inactive, will retry later",
+          );
+          resolve({
+            ok: false,
+            error: chrome.runtime.lastError.message,
+            shouldRetry: true,
+          });
+          return;
+        }
+        resolve(response || { ok: true });
+      },
+    );
   });
 };
 
@@ -77,7 +92,7 @@ const getActiveTime = () => {
     reset: () => {
       totalMs = 0;
       visibleSince = document.visibilityState === "visible" ? Date.now() : null;
-    }
+    },
   };
 
   return activeTracker;

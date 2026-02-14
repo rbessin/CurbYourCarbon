@@ -87,11 +87,50 @@ const renderPopup = async () => {
   }
 };
 
+const loadDeviceSetting = async () => {
+  try {
+    const result = await chrome.storage.sync.get(['deviceType', 'detectedDevice']);
+    const deviceType = result.deviceType || 'auto';
+    document.getElementById('device-type').value = deviceType;
+    
+    // Show what was detected if using auto
+    if (deviceType === 'auto' && result.detectedDevice) {
+      console.log('CurbYourCarbon: Auto-detected as', result.detectedDevice);
+    }
+  } catch (error) {
+    console.warn('Could not load device setting', error);
+  }
+};
+
+const saveDeviceSetting = async (deviceType) => {
+  try {
+    // If user manually selects a device (not auto), clear the auto-detection flag
+    if (deviceType !== 'auto') {
+      await chrome.storage.sync.set({ deviceType, deviceDetected: false });
+      console.log('CurbYourCarbon: Device manually set to', deviceType);
+    } else {
+      await chrome.storage.sync.set({ deviceType: 'auto' });
+      console.log('CurbYourCarbon: Device set to auto-detect');
+    }
+    // Re-render to show updated calculations
+    renderPopup();
+  } catch (error) {
+    console.warn('Could not save device setting', error);
+  }
+};
+
 const init = () => {
+  loadDeviceSetting();
   renderPopup();
+  
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") renderPopup();
   });
+  
+  document.getElementById('device-type').addEventListener('change', (e) => {
+    saveDeviceSetting(e.target.value);
+  });
+  
   document.getElementById("dashboard-button").addEventListener("click", () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("dashboard/dashboard.html") });
   });
