@@ -141,15 +141,25 @@ const updateEducationComparisons = (events, total) => {
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
   
-  // Comparison to average user
-  const avgDaily = 1000; // 1000g per day
-  const percentDiff = ((total - avgDaily) / avgDaily * 100);
+  // Comparison to average web browsing user
+  // Based on typical 3-4 hours browsing + 2GB data transfer per day
+  const avgDaily = 75; // ~75g per day for typical web browsing
   
   let vsAverageText;
-  if (total < avgDaily * 0.8) {
-    vsAverageText = `${Math.abs(percentDiff).toFixed(0)}% below average 🎉`;
+  if (total === 0) {
+    vsAverageText = 'No carbon tracked yet';
+  } else if (total < 50) {
+    // Very low usage - show as fraction of average
+    const percentOfAverage = ((total / avgDaily) * 100).toFixed(1);
+    vsAverageText = `${percentOfAverage}% of average 🎉`;
+  } else if (total < avgDaily * 0.8) {
+    // Below average - show how much less
+    const percentDiff = ((avgDaily - total) / avgDaily * 100);
+    vsAverageText = `${percentDiff.toFixed(0)}% less than average 🎉`;
   } else if (total > avgDaily * 1.2) {
-    vsAverageText = `${percentDiff.toFixed(0)}% above average`;
+    // Above average - show how much more
+    const percentDiff = ((total - avgDaily) / avgDaily * 100);
+    vsAverageText = `${percentDiff.toFixed(0)}% more than average`;
   } else {
     vsAverageText = 'About average';
   }
