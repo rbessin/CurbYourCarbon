@@ -88,7 +88,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       console.log("CurbYourCarbon: Event saved successfully", eventRecord);
 
-      chrome.runtime.sendMessage({ type: "EVENT_SAVED", payload: eventRecord });
+      // Notify popup if it's open (ignore errors if nothing is listening)
+      chrome.runtime.sendMessage({ type: "EVENT_SAVED", payload: eventRecord }, () => {
+        // Ignore "no receiver" errors - popup might not be open
+        chrome.runtime.lastError;
+      });
+      
       sendResponse({ ok: true, carbonGrams });
     } catch (error) {
       console.error("CurbYourCarbon: Failed to save event", error);

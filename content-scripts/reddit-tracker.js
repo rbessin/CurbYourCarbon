@@ -133,9 +133,11 @@
       state.mediaCount = 0;
       state.imagesLoaded.clear();
       state.videosLoaded.clear();
-    } else {
+    } else if (!result.shouldRetry) {
+      // Only log real errors, not service worker being inactive
       console.error("CurbYourCarbon: Failed to save Reddit event:", result.error);
     }
+    // If shouldRetry is true, we keep accumulating data and will send on next navigation
   };
 
   // Periodic summary (every 30 seconds for testing/demo)

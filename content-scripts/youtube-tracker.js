@@ -49,9 +49,11 @@
 
     if (result.ok) {
       console.log("CurbYourCarbon: Event saved successfully, carbon:", result.carbonGrams, "g");
-    } else {
+    } else if (!result.shouldRetry) {
+      // Only log real errors, not service worker being inactive
       console.error("CurbYourCarbon: Failed to save event:", result.error);
     }
+    // If shouldRetry is true, event will be captured on next pause/navigation
   };
 
   const detachFromVideo = (video) => {

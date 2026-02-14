@@ -198,9 +198,11 @@
       state.highResImages.clear();
       state.videosLoaded.clear();
       state.searchesPerformed = 0;
-    } else {
+    } else if (!result.shouldRetry) {
+      // Only log real errors, not service worker being inactive
       console.error("CurbYourCarbon: Failed to save Amazon event:", result.error);
     }
+    // If shouldRetry is true, we keep accumulating data and will send on next navigation
   };
 
   // Handle URL changes (SPA navigation)

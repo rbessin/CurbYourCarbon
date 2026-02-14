@@ -10,10 +10,17 @@ let activeTracker = null;
  */
 const sendEventToBackground = (eventData) => {
   return new Promise((resolve) => {
+    // Check if extension context is valid
+    if (!chrome.runtime?.id) {
+      console.log("CurbYourCarbon: Extension reloaded/disabled, data will send on next navigation");
+      resolve({ ok: false, error: "Extension context invalidated", shouldRetry: true });
+      return;
+    }
+
     chrome.runtime.sendMessage({ type: "TRACK_EVENT", payload: eventData }, (response) => {
       if (chrome.runtime.lastError) {
-        console.error("Extension context invalidated:", chrome.runtime.lastError);
-        resolve({ ok: false, error: chrome.runtime.lastError.message });
+        console.log("CurbYourCarbon: Service worker inactive, will retry later");
+        resolve({ ok: false, error: chrome.runtime.lastError.message, shouldRetry: true });
         return;
       }
       resolve(response || { ok: true });
