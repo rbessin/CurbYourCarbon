@@ -140,7 +140,7 @@ export class StorageManager {
 
   /**
    * Get total impact across all events.
-   * @returns {Promise<{totalCarbon: number, byCategory: Object, byPlatform: Object}>}
+   * @returns {Promise<{totalCarbon: number, byCategory: {media: number, shopping: number, browsing: number}, byPlatform: Object}>}
    */
   async getTotalImpact() {
     const db = await this.initDB();
@@ -154,16 +154,35 @@ export class StorageManager {
         const events = request.result || [];
         const totals = {
           totalCarbon: 0,
-          byCategory: { video: 0, social: 0, shopping: 0 },
+          byCategory: {
+            media: 0,
+            shopping: 0,
+            browsing: 0,
+            video: 0,
+            social: 0,
+          },
           byPlatform: {},
         };
 
         events.forEach((event) => {
           const grams = event.carbonGrams || 0;
           totals.totalCarbon += grams;
-          if (totals.byCategory[event.type] !== undefined) {
-            totals.byCategory[event.type] += grams;
+
+          const type = event.type || "browsing";
+          if (type === "media" || type === "video" || type === "social") {
+            totals.byCategory.media += grams;
+            if (type === "video") {
+              totals.byCategory.video += grams;
+            }
+            if (type === "social") {
+              totals.byCategory.social += grams;
+            }
+          } else if (type === "shopping") {
+            totals.byCategory.shopping += grams;
+          } else {
+            totals.byCategory.browsing += grams;
           }
+
           if (!totals.byPlatform[event.platform]) {
             totals.byPlatform[event.platform] = 0;
           }

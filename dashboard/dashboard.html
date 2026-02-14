@@ -44,7 +44,7 @@
               <span class="recommendation-action">Track your activity</span>
               <span class="recommendation-impact">Build awareness</span>
             </div>
-            <div class="recommendation-description">Browse YouTube, Reddit, or Amazon to start tracking your carbon footprint.</div>
+            <div class="recommendation-description">Browse any website to start tracking your carbon footprint.</div>
           </div>
         </div>
       </section>
@@ -82,6 +82,30 @@
             <div class="equivalency-value">0</div>
             <div class="equivalency-label">tree-days needed</div>
           </div>
+        </div>
+      </section>
+
+      <section class="card settings-card">
+        <h2>⚙️ Settings</h2>
+        
+        <div class="setting-group">
+          <label for="device-type">Device Type:</label>
+          <select id="device-type">
+            <option value="auto" selected>🔍 Auto-detect</option>
+            <option value="phone">📱 Phone (5W)</option>
+            <option value="tablet">📱 Tablet (10W)</option>
+            <option value="laptop">💻 Laptop (20W)</option>
+            <option value="desktop">🖥️ Desktop (40W)</option>
+            <option value="tv">📺 TV (100W)</option>
+          </select>
+          <p class="setting-hint">Device energy varies 20x from phone to TV</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="api-key">ElectricityMap API Key (Optional):</label>
+          <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
+          <button id="save-api-key" class="save-button">Save API Key</button>
+          <p class="setting-hint">Get free key at <a href="https://api-portal.electricitymap.org/" target="_blank">ElectricityMap</a></p>
         </div>
       </section>
 

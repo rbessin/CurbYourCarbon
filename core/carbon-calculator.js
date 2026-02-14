@@ -195,21 +195,74 @@ export const getCarbonBreakdown = (data, options = {}) => {
  */
 
 /**
- * Get regional carbon intensity.
- *
- * FUTURE: Integrate with ElectricityMap or WattTime API
- *
- * @param {string} location - User location (lat/lon or region code)
+ * Get user's location using free IP geolocation.
+ * Uses ipapi.co which doesn't require an API key.
+ * 
+ * @returns {Promise<{lat: number, lon: number, country: string}>}
+ */
+const getUserLocation = async () => {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) throw new Error('Location API failed');
+    
+    const data = await response.json();
+    return {
+      lat: data.latitude,
+      lon: data.longitude,
+      country: data.country_code
+    };
+  } catch (error) {
+    console.warn('CurbYourCarbon: Could not get location, using global average', error);
+    return null;
+  }
+};
+
+/**
+ * Get regional carbon intensity from ElectricityMap API.
+ * 
+ * @param {number} lat - Latitude
+ * @param {number} lon - Longitude
  * @returns {Promise<number>} grams CO2 per kWh
  */
-export const getRegionalCarbonIntensity = async (location = null) => {
-  // PLACEHOLDER: Return global average
-  // FUTURE:
-  // const response = await fetch(`https://api.electricitymap.org/v3/carbon-intensity/latest?lon=${lon}&lat=${lat}`);
-  // const data = await response.json();
-  // return data.carbonIntensity;
-
-  return GRID_CARBON.globalAverage;
+export const getRegionalCarbonIntensity = async (lat = null, lon = null) => {
+  try {
+    // If no location provided, get it
+    if (lat === null || lon === null) {
+      const location = await getUserLocation();
+      if (!location) return GRID_CARBON.globalAverage;
+      lat = location.lat;
+      lon = location.lon;
+    }
+    
+    // Import API key
+    const { API_KEYS } = await import('./config.js');
+    
+    if (!API_KEYS.electricityMap || API_KEYS.electricityMap === 'YOUR_ELECTRICITYMAP_API_KEY_HERE') {
+      console.warn('CurbYourCarbon: ElectricityMap API key not configured, using global average');
+      return GRID_CARBON.globalAverage;
+    }
+    
+    // Call ElectricityMap API
+    const response = await fetch(
+      `https://api.electricitymap.org/v3/carbon-intensity/latest?lon=${lon}&lat=${lat}`,
+      { headers: { 'auth-token': API_KEYS.electricityMap }}
+    );
+    
+    if (!response.ok) {
+      console.warn('CurbYourCarbon: ElectricityMap API failed, using global average');
+      return GRID_CARBON.globalAverage;
+    }
+    
+    const data = await response.json();
+    const carbonIntensity = data.carbonIntensity;
+    
+    console.log('CurbYourCarbon: Regional carbon intensity:', carbonIntensity, 'gCO2/kWh (vs global', GRID_CARBON.globalAverage, ')');
+    
+    return carbonIntensity || GRID_CARBON.globalAverage;
+  } catch (error) {
+    console.warn('CurbYourCarbon: Error fetching regional carbon intensity', error);
+    return GRID_CARBON.globalAverage;
+  }
 };
 
 /**

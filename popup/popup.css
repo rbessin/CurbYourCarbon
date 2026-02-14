@@ -136,43 +136,6 @@ body {
   line-height: 1.5;
 }
 
-/* Device Selector */
-.device-selector {
-  padding: 0.75rem 1.5rem;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.device-selector label {
-  font-size: 0.85rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.device-selector select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  background: white;
-  font-size: 0.85rem;
-  color: #333;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.device-selector select:hover {
-  border-color: #2f7d32;
-}
-
-.device-selector select:focus {
-  outline: none;
-  border-color: #2f7d32;
-  box-shadow: 0 0 0 2px rgba(47, 125, 50, 0.1);
-}
-
 /* Button */
 .dashboard-button {
   width: 100%;

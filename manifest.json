@@ -3,7 +3,7 @@
   "name": "CurbYourCarbon",
   "version": "2.0.0",
   "description": "Track the carbon footprint of your browsing activity on any website",
-  "permissions": ["storage", "tabs", "activeTab"],
+  "permissions": ["storage", "tabs", "activeTab", "offscreen", "geolocation"],
   "host_permissions": [
     "http://*/*",
     "https://*/*",
@@ -26,10 +26,15 @@
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
       "128": "assets/icons/icon128.png"
     }
   },
   "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   }
 }
