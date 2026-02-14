@@ -6,7 +6,8 @@
   "permissions": ["storage", "tabs", "activeTab"],
   "host_permissions": [
     "http://*/*",
-    "https://*/*"
+    "https://*/*",
+    "https://api.electricitymaps.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
