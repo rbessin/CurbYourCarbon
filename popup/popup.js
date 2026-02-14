@@ -119,8 +119,39 @@ const saveDeviceSetting = async (deviceType) => {
   }
 };
 
+const loadApiKey = async () => {
+  try {
+    const result = await chrome.storage.local.get('ELECTRICITY_MAPS_TOKEN');
+    const apiKey = result.ELECTRICITY_MAPS_TOKEN;
+    if (apiKey) {
+      document.getElementById('api-key').value = apiKey;
+    }
+  } catch (error) {
+    console.warn('Could not load API key', error);
+  }
+};
+
+const saveApiKey = async () => {
+  try {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (apiKey) {
+      await chrome.storage.local.set({ 'ELECTRICITY_MAPS_TOKEN': apiKey });
+      console.log('CurbYourCarbon: ElectricityMap API key saved');
+      alert('API key saved! Regional carbon intensity will be used.');
+    } else {
+      await chrome.storage.local.remove('ELECTRICITY_MAPS_TOKEN');
+      console.log('CurbYourCarbon: API key removed');
+      alert('API key removed. Using global average (475 gCO2/kWh).');
+    }
+  } catch (error) {
+    console.warn('Could not save API key', error);
+    alert('Error saving API key');
+  }
+};
+
 const init = () => {
   loadDeviceSetting();
+  loadApiKey();
   renderPopup();
   
   chrome.runtime.onMessage.addListener((message) => {
@@ -130,6 +161,8 @@ const init = () => {
   document.getElementById('device-type').addEventListener('change', (e) => {
     saveDeviceSetting(e.target.value);
   });
+  
+  document.getElementById('save-api-key').addEventListener('click', saveApiKey);
   
   document.getElementById("dashboard-button").addEventListener("click", () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("dashboard/dashboard.html") });
