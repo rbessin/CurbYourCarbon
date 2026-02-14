@@ -2,26 +2,50 @@ import { StorageManager } from "../core/storage-manager.js";
 import { aggregateByCategory, calculateEquivalencies } from "../core/carbon-calculator.js";
 
 const storageManager = new StorageManager();
+let categoryChart = null;
+
+const categoryColors = {
+  media: "#3fa34d",
+  shopping: "#4b8f59",
+  browsing: "#6fa36c"
+};
 
 const formatGrams = (grams) => {
   if (grams >= 1000) return `${(grams / 1000).toFixed(2)} kg`;
   return `${grams.toFixed(1)} g`;
 };
 
-const updateBars = (categoryTotals, total) => {
-  const mediaBar = document.getElementById("bar-video");
-  const shoppingBar = document.getElementById("bar-social");
-  const browsingBar = document.getElementById("bar-shopping");
+const renderCategoryChart = (categoryTotals) => {
+  const ctx = document.getElementById("category-chart");
+  if (!window.Chart || !ctx) return;
+  if (categoryChart) categoryChart.destroy();
 
-  const safeTotal = total > 0 ? total : 1;
   const media = categoryTotals.media || 0;
   const shopping = categoryTotals.shopping || 0;
   const browsing = categoryTotals.browsing || 0;
-  
-  mediaBar.style.width = `${(media / safeTotal) * 100}%`;
-  shoppingBar.style.width = `${(shopping / safeTotal) * 100}%`;
-  browsingBar.style.width = `${(browsing / safeTotal) * 100}%`;
-  
+  const total = media + shopping + browsing;
+  const hasData = total > 0;
+  const data = hasData ? [media, shopping, browsing] : [1];
+  const colors = hasData
+    ? [categoryColors.media, categoryColors.shopping, categoryColors.browsing]
+    : ["#e0e0e0"];
+
+  categoryChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: ["Streaming & Social", "Shopping", "General Browsing"],
+      datasets: [{ data, backgroundColor: colors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    }
+  });
+
   return { media, shopping, browsing };
 };
 
@@ -39,13 +63,16 @@ const renderPopup = async () => {
     const events = await storageManager.getEventsToday();
     const categoryTotals = aggregateByCategory(events);
     const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
+    const media = categoryTotals.media || 0;
+    const shopping = categoryTotals.shopping || 0;
+    const browsing = categoryTotals.browsing || 0;
 
     document.getElementById("today-total").textContent = formatGrams(total);
-    
-    const { media, shopping, browsing } = updateBars(categoryTotals, total);
-    document.getElementById("value-video").textContent = formatGrams(media);
-    document.getElementById("value-social").textContent = formatGrams(shopping);
-    document.getElementById("value-shopping").textContent = formatGrams(browsing);
+
+    renderCategoryChart(categoryTotals);
+    document.getElementById("value-media").textContent = formatGrams(media);
+    document.getElementById("value-shopping").textContent = formatGrams(shopping);
+    document.getElementById("value-browsing").textContent = formatGrams(browsing);
 
     document.getElementById("quick-insight").textContent = getQuickInsight(total);
 
