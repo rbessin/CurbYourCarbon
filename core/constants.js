@@ -105,6 +105,29 @@ export const EQUIVALENCIES = {
 };
 
 /**
+ * DEVICE TYPE MULTIPLIERS
+ * Based on research showing device energy consumption varies significantly:
+ * - Large TVs and desktops consume 4-5x more than phones
+ * - Laptops consume ~2x more than phones
+ * - Tablets are similar to phones
+ * 
+ * Source: IEA Digital Energy Report 2020, showing:
+ * - 50" TV: ~150W average
+ * - Desktop: ~100W average
+ * - Laptop: ~50W average
+ * - Tablet/Phone: ~5-10W average
+ */
+export const DEVICE_MULTIPLIERS = {
+  phone: 0.5,              // Mobile devices are most efficient
+  tablet: 0.7,             // Tablets slightly more energy
+  "laptop-touchscreen": 1.0, // Base multiplier
+  laptop: 1.0,             // Laptops are our baseline
+  desktop: 2.5,            // Desktops use significantly more power
+  tv: 4.0,                 // Large TVs have highest consumption
+  unknown: 1.0             // Default to laptop baseline
+};
+
+/**
  * DATABASE CONFIGURATION
  * IndexedDB storage for events and daily summaries.
  */

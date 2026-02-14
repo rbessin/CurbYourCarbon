@@ -37,10 +37,13 @@ const updateDailySummary = async (eventRecord) => {
 };
 
 const calculateEventCarbon = (payload) => {
+  const deviceInfo = payload.deviceInfo || null;
+  
   if (payload.type === "video") {
     return calculateVideoImpact(
       payload.duration || 0,
       payload.resolution || "1080p",
+      deviceInfo
     );
   }
   if (payload.type === "social") {
@@ -49,6 +52,7 @@ const calculateEventCarbon = (payload) => {
       payload.mediaCount || 0,
       payload.imagesLoaded || 0,
       payload.videosLoaded || 0,
+      deviceInfo
     );
   }
   if (payload.type === "shopping") {
@@ -59,6 +63,7 @@ const calculateEventCarbon = (payload) => {
       payload.imagesLoaded || 0,
       payload.highResImages || 0,
       payload.videosLoaded || 0,
+      deviceInfo
     );
   }
   return 0;

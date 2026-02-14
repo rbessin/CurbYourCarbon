@@ -15,7 +15,7 @@
     return;
   }
 
-  const { getActiveTime, sendEventToBackground, debounce } = window.CurbYourCarbon;
+  const { getActiveTime, sendEventToBackground, debounce, getDeviceInfo } = window.CurbYourCarbon;
 
   const state = {
     activeTime: getActiveTime(),
@@ -114,6 +114,9 @@
       videos: state.videosLoaded.size
     });
 
+    // Get device info to include in payload
+    const deviceInfo = await getDeviceInfo();
+
     const result = await sendEventToBackground({
       type: "social",
       platform: "reddit",
@@ -122,6 +125,7 @@
       mediaCount: state.mediaCount,
       imagesLoaded: state.imagesLoaded.size,
       videosLoaded: state.videosLoaded.size,
+      deviceInfo: deviceInfo,
       timestamp: Date.now(),
     });
 

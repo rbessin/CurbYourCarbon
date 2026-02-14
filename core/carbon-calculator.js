@@ -1,19 +1,33 @@
 /**
  * Carbon calculation utilities for extension events.
  */
-import { CARBON_ESTIMATES, EQUIVALENCIES } from "./constants.js";
+import { CARBON_ESTIMATES, EQUIVALENCIES, DEVICE_MULTIPLIERS } from "./constants.js";
+
+/**
+ * Get device multiplier from device info.
+ * @param {Object} deviceInfo
+ * @returns {number}
+ */
+const getDeviceMultiplier = (deviceInfo) => {
+  if (!deviceInfo || !deviceInfo.deviceClass) {
+    return DEVICE_MULTIPLIERS.unknown;
+  }
+  return DEVICE_MULTIPLIERS[deviceInfo.deviceClass] || DEVICE_MULTIPLIERS.unknown;
+};
 
 /**
  * Calculate video impact in grams CO2.
  * @param {number} durationMinutes
  * @param {string} resolution
+ * @param {Object} deviceInfo
  * @returns {number}
  */
-export const calculateVideoImpact = (durationMinutes, resolution) => {
+export const calculateVideoImpact = (durationMinutes, resolution, deviceInfo = null) => {
   const perHour =
     CARBON_ESTIMATES.video[resolution] || CARBON_ESTIMATES.video["1080p"];
   const hours = Math.max(durationMinutes, 0) / 60;
-  return +(perHour * hours).toFixed(2);
+  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
+  return +(perHour * hours * deviceMultiplier).toFixed(2);
 };
 
 /**
@@ -22,13 +36,15 @@ export const calculateVideoImpact = (durationMinutes, resolution) => {
  * @param {number} mediaCount
  * @param {number} imagesLoaded
  * @param {number} videosLoaded
+ * @param {Object} deviceInfo
  * @returns {number}
  */
 export const calculateSocialImpact = (
   timeActiveMinutes,
   mediaCount,
   imagesLoaded = 0,
-  videosLoaded = 0
+  videosLoaded = 0,
+  deviceInfo = null
 ) => {
   const base = Math.max(timeActiveMinutes, 0) * CARBON_ESTIMATES.social.reddit;
   const scrollingMinutes = Math.min(
@@ -38,7 +54,8 @@ export const calculateSocialImpact = (
   const scrolling = scrollingMinutes * CARBON_ESTIMATES.social.scrolling;
   const images = Math.max(imagesLoaded, 0) * CARBON_ESTIMATES.social.imageLoad;
   const videos = Math.max(videosLoaded, 0) * CARBON_ESTIMATES.social.videoLoad;
-  return +(base + scrolling + images + videos).toFixed(2);
+  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
+  return +((base + scrolling + images + videos) * deviceMultiplier).toFixed(2);
 };
 
 /**
@@ -49,6 +66,7 @@ export const calculateSocialImpact = (
  * @param {number} imagesLoaded
  * @param {number} highResImages
  * @param {number} videosLoaded
+ * @param {Object} deviceInfo
  * @returns {number}
  */
 export const calculateShoppingImpact = (
@@ -57,7 +75,8 @@ export const calculateShoppingImpact = (
   productCardsLoaded = 0,
   imagesLoaded = 0,
   highResImages = 0,
-  videosLoaded = 0
+  videosLoaded = 0,
+  deviceInfo = null
 ) => {
   const browsing =
     Math.max(timeActiveMinutes, 0) * CARBON_ESTIMATES.shopping.amazon;
@@ -71,7 +90,8 @@ export const calculateShoppingImpact = (
     Math.max(highResImages, 0) * CARBON_ESTIMATES.shopping.highResImage;
   const videos =
     Math.max(videosLoaded, 0) * CARBON_ESTIMATES.shopping.videoLoad;
-  return +(browsing + products + cards + images + highRes + videos).toFixed(2);
+  const deviceMultiplier = getDeviceMultiplier(deviceInfo);
+  return +((browsing + products + cards + images + highRes + videos) * deviceMultiplier).toFixed(2);
 };
 
 /**
