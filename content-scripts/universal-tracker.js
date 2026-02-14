@@ -50,16 +50,33 @@
   };
 
   /**
-   * Categorize website type based on domain.
-   * This is for analytics only - carbon calculation uses actual data.
+   * Categorize website into simplified user-friendly categories.
+   * 
+   * 3 categories:
+   * - media: Streaming & Social (YouTube, Netflix, Instagram, Reddit, etc.)
+   * - shopping: E-commerce (Amazon, eBay, etc.)
+   * - browsing: Everything else (news, docs, search, etc.)
    */
   const categorizeWebsite = (domain) => {
     const categories = {
-      video: ['youtube.com', 'netflix.com', 'twitch.tv', 'vimeo.com', 'hulu.com'],
-      social: ['reddit.com', 'instagram.com', 'facebook.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com', 'pinterest.com'],
-      shopping: ['amazon.com', 'ebay.com', 'etsy.com', 'walmart.com', 'target.com', 'aliexpress.com', 'shopify.com'],
-      news: ['nytimes.com', 'cnn.com', 'bbc.com', 'theguardian.com', 'reuters.com', 'wsj.com'],
-      productivity: ['gmail.com', 'docs.google.com', 'office.com', 'notion.so', 'slack.com']
+      // Streaming & Social Media
+      media: [
+        // Video streaming
+        'youtube.com', 'youtu.be', 'netflix.com', 'twitch.tv', 'vimeo.com', 'hulu.com',
+        'disneyplus.com', 'hbomax.com', 'primevideo.com', 'crunchyroll.com',
+        // Social media
+        'reddit.com', 'instagram.com', 'facebook.com', 'twitter.com', 'x.com',
+        'tiktok.com', 'linkedin.com', 'pinterest.com', 'snapchat.com', 'tumblr.com'
+      ],
+      
+      // E-commerce & Shopping
+      shopping: [
+        'amazon.com', 'ebay.com', 'etsy.com', 'walmart.com', 'target.com',
+        'bestbuy.com', 'aliexpress.com', 'shopify.com', 'wayfair.com'
+      ]
+      
+      // Everything else defaults to 'browsing'
+      // (news, docs, email, search, blogs, productivity)
     };
     
     for (const [category, domains] of Object.entries(categories)) {
@@ -68,7 +85,30 @@
       }
     }
     
-    return 'browsing'; // Default category
+    return 'browsing'; // Default: news, docs, productivity, etc.
+  };
+
+  /**
+   * Detect if a URL is likely video streaming content.
+   */
+  const isVideoStreamingUrl = (url) => {
+    // Common video CDN patterns
+    const videoPatterns = [
+      'googlevideo.com',      // YouTube
+      'cloudfront.net/video', // Generic video CDN
+      'twitch.tv/video',      // Twitch HLS
+      '.m3u8',                // HLS manifest
+      '.ts',                  // HLS chunks (can be ambiguous)
+      'video.twitch.tv',      // Twitch video
+      'vod-',                 // Video on demand
+      'nflxvideo.net',        // Netflix
+      'hls.ttvnw.net',        // Twitch HLS
+      'video-edge',           // Generic video edge
+      '/manifest/',           // Streaming manifests
+      'playlist.m3u8',        // HLS playlists
+    ];
+    
+    return videoPatterns.some(pattern => url.toLowerCase().includes(pattern));
   };
 
   /**
@@ -86,9 +126,17 @@
     if (size === 0) return; // Skip cached resources with no transfer
     
     const type = entry.initiatorType || 'other';
+    const url = entry.name || '';
     
     // Add to total
     state.totalBytes += size;
+    
+    // Check if this is video streaming content (even if marked as fetch/xhr)
+    if (type === 'video' || isVideoStreamingUrl(url)) {
+      state.videoBytes += size;
+      state.resourceCounts.video++;
+      return;
+    }
     
     // Categorize by type
     switch (type) {
@@ -96,11 +144,6 @@
       case 'image':
         state.imageBytes += size;
         state.resourceCounts.image++;
-        break;
-      
-      case 'video':
-        state.videoBytes += size;
-        state.resourceCounts.video++;
         break;
       
       case 'script':

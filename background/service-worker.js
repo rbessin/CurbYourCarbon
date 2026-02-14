@@ -16,7 +16,7 @@ const updateDailySummary = async (eventRecord) => {
   const existing = (await storageManager.getDailySummary(dateKey)) || {
     date: dateKey,
     totalCarbon: 0,
-    byCategory: { video: 0, social: 0, shopping: 0, browsing: 0 },
+    byCategory: { media: 0, shopping: 0, browsing: 0 },
     byPlatform: {},
   };
 

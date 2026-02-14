@@ -8,7 +8,6 @@ import {
   NETWORK_ENERGY, 
   GRID_CARBON, 
   DEVICE_ENERGY,
-  RESOURCE_WEIGHTS,
   EQUIVALENCIES 
 } from "./constants.js";
 
@@ -100,7 +99,7 @@ export const aggregateByCategory = (events) => {
       totals[category] += event.carbonGrams || 0;
       return totals;
     },
-    { video: 0, social: 0, shopping: 0, browsing: 0 }
+    { media: 0, shopping: 0, browsing: 0 }
   );
 };
 
