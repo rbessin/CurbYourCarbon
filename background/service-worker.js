@@ -1,17 +1,14 @@
 import { StorageManager } from "../core/storage-manager.js";
-import {
-  calculateShoppingImpact,
-  calculateSocialImpact,
-  calculateVideoImpact,
-} from "../core/carbon-calculator.js";
+import { calculateTotalCarbon } from "../core/carbon-calculator.js";
+import { BASELINE_GRID_INTENSITY } from "../core/constants.js";
 
 const storageManager = new StorageManager();
 const GRID_INTENSITY_CACHE_KEY = "gridIntensityCache";
 const ELECTRICITY_MAPS_TOKEN_KEY = "ELECTRICITY_MAPS_TOKEN";
 const GRID_INTENSITY_TTL_MS = 10 * 60 * 1000;
 const ELECTRICITY_MAPS_LATEST_URL =
-  "https://api.electricitymaps.com/v3/carbon-intensity/latest";
-
+  "https://api.electricitymaps.com/v3/carbon-intensity/latest?zone=US";
+  
 const getElectricityMapsToken = async () => {
   const result = await chrome.storage.local.get(ELECTRICITY_MAPS_TOKEN_KEY);
   const token = result?.[ELECTRICITY_MAPS_TOKEN_KEY];
@@ -44,11 +41,7 @@ const fetchGridIntensityFromElectricityMaps = async (token) => {
   }
 
   const data = await response.json();
-  const intensityValueCandidates = [
-    data?.carbonIntensity,
-    data?.carbonIntensityAvg,
-    data?.intensity,
-  ];
+  const intensityValueCandidates = [data?.carbonIntensity, data?.carbonIntensityAvg, data?.intensity];
   const intensity = intensityValueCandidates.find(
     (value) => typeof value === "number" && Number.isFinite(value),
   );
@@ -94,6 +87,17 @@ const getRealtimeGridIntensity = async () => {
   }
 };
 
+const getGridMultiplier = (intensity) => {
+  if (
+    typeof intensity !== "number" ||
+    !Number.isFinite(intensity) ||
+    BASELINE_GRID_INTENSITY <= 0
+  ) {
+    return null;
+  }
+  return +(intensity / BASELINE_GRID_INTENSITY).toFixed(3);
+};
+
 // Expose helpers for DevTools debugging (MV3 module scope doesn't attach consts to global)
 globalThis.getRealtimeGridIntensity = getRealtimeGridIntensity;
 globalThis.getCachedGridIntensity = getCachedGridIntensity;
@@ -133,32 +137,30 @@ const updateDailySummary = async (eventRecord) => {
   await storageManager.saveDailySummary(existing);
 };
 
-const calculateEventCarbon = (payload) => {
-  if (payload.type === "video") {
-    return calculateVideoImpact(
-      payload.duration || 0,
-      payload.resolution || "1080p",
-    );
-  }
-  if (payload.type === "social") {
-    return calculateSocialImpact(
-      payload.timeActive || 0,
-      payload.mediaCount || 0,
-      payload.imagesLoaded || 0,
-      payload.videosLoaded || 0,
-    );
-  }
-  if (payload.type === "shopping") {
-    return calculateShoppingImpact(
-      payload.timeActive || 0,
-      payload.productsViewed || 0,
-      payload.productCardsLoaded || 0,
-      payload.imagesLoaded || 0,
-      payload.highResImages || 0,
-      payload.videosLoaded || 0,
-    );
-  }
-  return 0;
+const calculateEventCarbon = async (payload) => {
+  const gridData = await getRealtimeGridIntensity();
+  const gridIntensity =
+    typeof gridData?.intensity === "number" && Number.isFinite(gridData.intensity)
+      ? gridData.intensity
+      : null;
+  const gridMultiplier = getGridMultiplier(gridIntensity);
+
+  const baselineCarbon = calculateTotalCarbon(payload, {
+    carbonIntensity: BASELINE_GRID_INTENSITY,
+  });
+  const carbonGrams =
+    gridMultiplier !== null
+      ? +(baselineCarbon * gridMultiplier).toFixed(2)
+      : baselineCarbon;
+
+  return {
+    carbonGrams,
+    gridIntensity,
+    gridZone: typeof gridData?.zone === "string" ? gridData.zone : null,
+    gridMultiplier,
+    gridIsEstimated:
+      typeof gridData?.isEstimated === "boolean" ? gridData.isEstimated : null,
+  };
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -171,12 +173,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       const payload = message.payload || {};
-      const carbonGrams = calculateEventCarbon(payload);
+      const gridContext = await calculateEventCarbon(payload);
+      const { carbonGrams } = gridContext;
       const eventRecord = {
         timestamp: payload.timestamp || Date.now(),
         type: payload.type || 'browsing',
         platform: payload.platform || 'unknown',
-        data: payload,
+        data: {
+          ...payload,
+          gridIntensity: gridContext.gridIntensity,
+          gridZone: gridContext.gridZone,
+          gridMultiplier: gridContext.gridMultiplier,
+          gridIsEstimated: gridContext.gridIsEstimated,
+        },
         carbonGrams,
       };
 
@@ -196,9 +205,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         ok: true,
         carbonGrams,
-        gridIntensity: payload.gridIntensity ?? null,
-        gridZone: payload.gridZone ?? null,
-        gridMultiplier: payload.gridMultiplier ?? null,
+        gridIntensity: gridContext.gridIntensity,
+        gridZone: gridContext.gridZone,
+        gridMultiplier: gridContext.gridMultiplier,
+        gridIsEstimated: gridContext.gridIsEstimated,
       });
     } catch (error) {
       console.error("CurbYourCarbon: Failed to save event", error);
