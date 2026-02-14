@@ -70,15 +70,19 @@ body {
   color: white;
 }
 
-/* Total Card */
-.total-card {
+/* Hero Section */
+.hero-section {
   background: linear-gradient(135deg, #2f7d32 0%, #4caf50 100%);
   color: white;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+}
+
+.total-impact {
   text-align: center;
+  margin-bottom: 2rem;
 }
 
 .total-label {
@@ -90,6 +94,43 @@ body {
 .total-value {
   font-size: 3rem;
   font-weight: bold;
+}
+
+.grid-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.info-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: pre-line;
 }
 
 /* Card */
@@ -107,6 +148,87 @@ body {
   margin-bottom: 1rem;
 }
 
+.chart-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* Education Card */
+.education-card h3 {
+  font-size: 1.1rem;
+  color: #2f7d32;
+  margin-bottom: 0.75rem;
+}
+
+.education-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.edu-section p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+}
+
+.comparison-item {
+  text-align: center;
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.comparison-value {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #2f7d32;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-label {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.equivalencies-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.eq-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.eq-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.eq-text {
+  font-size: 1.05rem;
+  color: #333;
+}
+
+.eq-text strong {
+  color: #2f7d32;
+  font-size: 1.25rem;
+}
+
 /* Grid */
 .grid-2 {
   display: grid;
@@ -115,46 +237,72 @@ body {
   margin-bottom: 1.5rem;
 }
 
-/* Insights */
-.insights-container {
+/* Calculation Card */
+.calculation-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.insight {
+.calc-step {
   display: flex;
+  gap: 1.5rem;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  line-height: 1.5;
 }
 
-.insight-icon {
+.calc-number {
+  background: #2f7d32;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
   font-size: 1.25rem;
   flex-shrink: 0;
 }
 
-.insight-positive {
-  background: #e8f5e9;
-  border-left: 3px solid #4caf50;
+.calc-content {
+  flex: 1;
 }
 
-.insight-warning {
-  background: #fff3e0;
-  border-left: 3px solid #ff9800;
+.calc-content h3 {
+  font-size: 1.1rem;
+  color: #2f7d32;
+  margin-bottom: 0.5rem;
 }
 
-.insight-info {
-  background: #e3f2fd;
-  border-left: 3px solid #2196f3;
+.calc-content p {
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
 }
 
-.insight-neutral {
+.calc-formula {
   background: #f5f5f5;
-  border-left: 3px solid #9e9e9e;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid #2f7d32;
+}
+
+.calc-formula code {
+  font-family: 'Courier New', monospace;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.research-note {
+  background: #e8f5e9;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.5;
 }
 
 /* Recommendations */
@@ -197,45 +345,8 @@ body {
 
 .recommendation-description {
   color: #666;
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.5;
-}
-
-/* Equivalencies */
-.equivalencies-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-}
-
-.equivalencies-subtitle {
-  color: #666;
-  margin-bottom: 1.5rem;
-  font-size: 0.95rem;
-}
-
-.equivalencies {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1.5rem;
-}
-
-.equivalency-item {
-  text-align: center;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.equivalency-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #2f7d32;
-  margin-bottom: 0.5rem;
-}
-
-.equivalency-label {
-  font-size: 0.9rem;
-  color: #666;
 }
 
 /* Settings Card */
@@ -309,7 +420,7 @@ body {
 }
 
 .setting-hint {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   color: #666;
   margin-top: 0.5rem;
   line-height: 1.4;
@@ -327,27 +438,40 @@ body {
 
 /* Footer */
 .dashboard-footer {
-  text-align: center;
+  background: white;
   padding: 2rem;
-  color: white;
-  font-size: 0.85rem;
-  opacity: 0.9;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  margin-top: 2rem;
 }
 
-.dashboard-footer p {
-  margin-bottom: 0.5rem;
+.dashboard-footer h3 {
+  font-size: 1.1rem;
+  color: #2f7d32;
+  margin-bottom: 1rem;
 }
 
-.dashboard-footer a {
-  color: white;
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.sources-grid a {
+  display: block;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 6px;
+  color: #2f7d32;
   text-decoration: none;
-  font-weight: 500;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-  transition: border-color 0.2s;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  border-left: 3px solid #2f7d32;
 }
 
-.dashboard-footer a:hover {
-  border-bottom-color: white;
+.sources-grid a:hover {
+  background: #e8f5e9;
+  transform: translateX(4px);
 }
 
 /* Charts */
@@ -379,8 +503,24 @@ canvas {
     grid-template-columns: 1fr;
   }
 
+  .grid-info {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+
   .recommendation-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .calc-step {
+    flex-direction: column;
+  }
+
+  .sources-grid {
+    grid-template-columns: 1fr;
   }
 }

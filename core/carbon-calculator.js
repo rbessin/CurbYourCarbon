@@ -6,7 +6,7 @@
  */
 import {
   NETWORK_ENERGY,
-  GRID_CARBON,
+  BASELINE_GRID_INTENSITY,
   DEVICE_ENERGY,
   EQUIVALENCIES,
 } from "./constants.js";
@@ -24,7 +24,7 @@ export const calculateNetworkCarbon = (bytes, carbonIntensity = null) => {
   // Convert bytes → GB → kWh → CO2
   const GB = bytes / 1024 / 1024 / 1024;
   const kWh = GB * NETWORK_ENERGY.kWhPerGB;
-  const intensity = carbonIntensity || GRID_CARBON.globalAverage;
+  const intensity = carbonIntensity || BASELINE_GRID_INTENSITY;
 
   return +(kWh * intensity).toFixed(2);
 };
@@ -48,7 +48,7 @@ export const calculateDeviceCarbon = (
   const hours = timeActiveMinutes / 60;
   const watts = deviceWatts || DEVICE_ENERGY.averageBrowsing;
   const kWh = (watts / 1000) * hours;
-  const intensity = carbonIntensity || GRID_CARBON.globalAverage;
+  const intensity = carbonIntensity || BASELINE_GRID_INTENSITY;
 
   return +(kWh * intensity).toFixed(2);
 };
