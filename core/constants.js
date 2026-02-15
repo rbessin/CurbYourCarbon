@@ -173,17 +173,16 @@ export const STORE_NAMES = {
 /**
  * CALCULATION FORMULA:
  *
- * Total CO2 = Network Transfer CO2 + Device Energy CO2 + Video Processing Overhead
+ * Total CO2 = Network Transfer CO2 + Device Energy CO2
  *
  * 1. NETWORK TRANSFER CO2:
- *    CO2 = (bytes / 1,073,741,824) × 0.016 kWh/GB × 475 gCO2/kWh
+ *    CO2 = (bytes / 1,073,741,824) × 0.016 kWh/GB × regional_carbon_intensity
  *
  * 2. DEVICE ENERGY CO2:
- *    CO2 = (minutes / 60) × 20W / 1000 × 475 gCO2/kWh
+ *    CO2 = (minutes / 60) × device_watts / 1000 × regional_carbon_intensity
  *
- * 3. VIDEO PROCESSING OVERHEAD:
- *    CO2 = videoBytes × 0.5 × network formula
- *    (Video decoding requires ~50% extra processing power)
+ * Device energy already includes CPU usage for video decoding and rendering.
+ * Regional carbon intensity is fetched via ElectricityMaps API or defaults to 475 gCO2/kWh.
  */
 // BASELINE_GRID_INTENSITY moved to top of file for clarity
-// All calculations use 475 gCO2/kWh as the global average baseline
+// All calculations use regional carbon intensity when available, or 475 gCO2/kWh baseline

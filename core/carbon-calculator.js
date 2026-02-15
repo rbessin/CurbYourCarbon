@@ -82,14 +82,7 @@ export const calculateTotalCarbon = (data, options = {}) => {
     options.carbonIntensity,
   );
 
-  // Add processing overhead for video content (decoding is energy-intensive)
-  const videoBytes = (data.videoMB || 0) * 1024 * 1024;
-  const videoOverhead = calculateNetworkCarbon(
-    videoBytes * 0.5,
-    options.carbonIntensity,
-  );
-
-  const total = networkCarbon + deviceCarbon + videoOverhead;
+  const total = networkCarbon + deviceCarbon;
 
   // Debug logging
   if (timeActive > 0 || bytes > 0) {
@@ -106,7 +99,6 @@ export const calculateTotalCarbon = (data, options = {}) => {
         " min × " +
         (options.deviceWatts || 20) +
         "W)",
-      videoOverhead: videoOverhead.toFixed(2) + "g",
       total: total.toFixed(2) + "g",
     });
   }
@@ -161,12 +153,11 @@ export const calculateEquivalencies = (totalGrams) => {
  *
  * @param {Object} data - Event data
  * @param {Object} options - Calculation options
- * @returns {{network: number, device: number, videoOverhead: number, total: number}}
+ * @returns {{network: number, device: number, total: number}}
  */
 export const getCarbonBreakdown = (data, options = {}) => {
   const bytes = (data.totalMB || 0) * 1024 * 1024;
   const timeActive = data.timeActive || 0;
-  const videoBytes = (data.videoMB || 0) * 1024 * 1024;
 
   const network = calculateNetworkCarbon(bytes, options.carbonIntensity);
   const device = calculateDeviceCarbon(
@@ -174,16 +165,11 @@ export const getCarbonBreakdown = (data, options = {}) => {
     options.deviceWatts,
     options.carbonIntensity,
   );
-  const videoOverhead = calculateNetworkCarbon(
-    videoBytes * 0.5,
-    options.carbonIntensity,
-  );
 
   return {
     network: +network.toFixed(2),
     device: +device.toFixed(2),
-    videoOverhead: +videoOverhead.toFixed(2),
-    total: +(network + device + videoOverhead).toFixed(2),
+    total: +(network + device).toFixed(2),
   };
 };
 
