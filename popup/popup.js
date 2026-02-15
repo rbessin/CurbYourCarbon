@@ -42,12 +42,12 @@ const renderCategoryChart = (categoryTotals) => {
 };
 
 const getQuickInsight = (total) => {
-  const typical = 70;
+  const typical = 75;
   if (total === 0) return "Browse any website to start tracking!";
   if (total < typical * 0.5) return "✨ Excellent! You're well below average.";
   if (total < typical * 0.8) return "👍 Good job! Your usage is below average.";
   if (total < typical * 1.2) return "Average digital footprint for today.";
-  return "💡 Consider reducing usage or quality.";
+  return "🚨 Consider reducing usage or quality.";
 };
 
 const updateTreeVisualization = (totalGrams) => {
@@ -96,7 +96,7 @@ const renderPopup = async () => {
     }, null);
     const carbonRate = mostRecentEvent?.carbonRate ? `${mostRecentEvent.carbonRate} g CO2/hr` : 'N/A';
     const categoryTotals = aggregateByCategory(events);
-    const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
+    const total = 100 + Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
     const media = categoryTotals.media || 0;
     const shopping = categoryTotals.shopping || 0;
     const browsing = categoryTotals.browsing || 0;
