@@ -96,7 +96,7 @@ const renderPopup = async () => {
     }, null);
     const carbonRate = mostRecentEvent?.carbonRate ? `${mostRecentEvent.carbonRate} g CO2/hr` : 'N/A';
     const categoryTotals = aggregateByCategory(events);
-    const total = 100 + Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
+    const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
     const media = categoryTotals.media || 0;
     const shopping = categoryTotals.shopping || 0;
     const browsing = categoryTotals.browsing || 0;
