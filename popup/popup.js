@@ -4,12 +4,6 @@ import { aggregateByCategory, calculateEquivalencies } from "../core/carbon-calc
 const storageManager = new StorageManager();
 let categoryChart = null;
 
-const categoryColors = {
-  media: "#3fa34d",
-  shopping: "#4b8f59",
-  browsing: "#6fa36c"
-};
-
 const formatGrams = (grams) => {
   if (grams >= 1000) return `${(grams / 1000).toFixed(2)} kg`;
   return `${grams.toFixed(1)} g`;
@@ -26,9 +20,7 @@ const renderCategoryChart = (categoryTotals) => {
   const total = media + shopping + browsing;
   const hasData = total > 0;
   const data = hasData ? [media, shopping, browsing] : [1];
-  const colors = hasData
-    ? [categoryColors.media, categoryColors.shopping, categoryColors.browsing]
-    : ["#e0e0e0"];
+  const colors = ["#7CB342", "#26A69A", "#43A047"];
 
   categoryChart = new Chart(ctx, {
     type: "pie",
@@ -50,7 +42,7 @@ const renderCategoryChart = (categoryTotals) => {
 };
 
 const getQuickInsight = (total) => {
-  const typical = 1000;
+  const typical = 70;
   if (total === 0) return "Browse any website to start tracking!";
   if (total < typical * 0.5) return "✨ Excellent! You're well below average.";
   if (total < typical * 0.8) return "👍 Good job! Your usage is below average.";
@@ -122,12 +114,6 @@ const renderPopup = async () => {
 
     document.getElementById("carbon-rate").textContent = `Current Carbon Rate: ${carbonRate}`;
 
-    const equivalencies = calculateEquivalencies(total);
-    let eqText = `${equivalencies.milesDriven.toFixed(1)} miles driven`;
-    if (equivalencies.phonesCharged >= 1) {
-      eqText += ` • ${equivalencies.phonesCharged.toFixed(0)} phones charged`;
-    }
-    document.getElementById("equivalency-text").textContent = eqText;
   } catch (error) {
     console.warn("Failed to render popup", error);
   }

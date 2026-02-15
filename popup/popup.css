@@ -12,7 +12,6 @@ body {
 
 .popup {
   background: white;
-  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -99,15 +98,15 @@ body {
 }
 
 .key-media {
-  background: #3fa34d;
+  background: #7CB342;
 }
 
 .key-shopping {
-  background: #4b8f59;
+  background: #26A69A;
 }
 
 .key-browsing {
-  background: #6fa36c;
+  background: #43A047;
 }
 
 .key-label {
