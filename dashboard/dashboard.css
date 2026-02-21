@@ -380,6 +380,21 @@ body {
   transition: border-color 0.2s;
 }
 
+.api-key-input-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.api-key-input-group input {
+  flex: 1;
+}
+
+.api-key-input-group button {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
 .setting-group input {
   font-family: monospace;
 }
@@ -407,6 +422,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .save-button:hover {
@@ -434,6 +450,56 @@ body {
 
 .setting-hint a:hover {
   text-decoration: underline;
+}
+
+.api-status {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  display: none;
+  background: #f5f5f5;
+  border-left: 3px solid #9e9e9e;
+  color: #666;
+}
+
+.api-status.success {
+  display: block;
+  background: #e8f5e9;
+  border-left: 3px solid #4caf50;
+  color: #2f7d32;
+}
+
+.api-status.error {
+  display: block;
+  background: #ffebee;
+  border-left: 3px solid #f44336;
+  color: #c62828;
+}
+
+.api-status.warning {
+  display: block;
+  background: #fff3e0;
+  border-left: 3px solid #ff9800;
+  color: #e65100;
+}
+
+.api-status a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.api-status a:hover {
+  opacity: 0.8;
+}
+
+.api-status.testing {
+  display: block;
+  background: #f0f4f8;
+  border-left: 3px solid #64b5f6;
+  color: #1976d2;
 }
 
 /* Footer */

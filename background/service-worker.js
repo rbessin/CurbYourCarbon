@@ -360,6 +360,23 @@ const calculateEventCarbon = async (payload) => {
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "REQUEST_LOCATION") {
+    (async () => {
+      try {
+        const location = await requestGeolocationFromOffscreen();
+        if (location) {
+          await setLastKnownLocation(location.lat, location.lon);
+          sendResponse({ success: true, location });
+        } else {
+          sendResponse({ success: false, error: "Location permission denied or unavailable" });
+        }
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+  
   if (message.type !== "TRACK_EVENT") return;
 
   console.log(

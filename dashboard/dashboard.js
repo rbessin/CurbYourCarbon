@@ -27,10 +27,104 @@ const categoryNames = {
   browsing: "General Browsing"
 };
 
+const gridZoneNames = {
+  'US-NE-ISNE': 'New England ISO',
+  'US-NEISO': 'New England ISO',
+  'US-CAL': 'California',
+  'US-MIDA': 'Mid-Atlantic',
+  'US-NY': 'New York',
+  'US-PJM': 'PJM Interconnection',
+  'US-TEX': 'Texas',
+  'US-NW': 'Northwest',
+  'US-SE': 'Southeast',
+  'US-CENT': 'Central',
+  'US-FLA': 'Florida',
+  'US-MIDW': 'Midwest',
+  'US-CAR': 'Carolinas',
+  'US-TEN': 'Tennessee',
+  'GB': 'Great Britain',
+  'DE': 'Germany',
+  'FR': 'France',
+  'ES': 'Spain',
+  'IT': 'Italy',
+  'NL': 'Netherlands',
+  'BE': 'Belgium',
+  'CH': 'Switzerland',
+  'AT': 'Austria',
+  'DK': 'Denmark',
+  'NO': 'Norway',
+  'SE': 'Sweden',
+  'FI': 'Finland',
+  'PL': 'Poland',
+  'CZ': 'Czech Republic',
+  'CA-ON': 'Ontario',
+  'CA-QC': 'Quebec',
+  'CA-AB': 'Alberta',
+  'CA-BC': 'British Columbia',
+  'AU-NSW': 'New South Wales',
+  'AU-VIC': 'Victoria',
+  'AU-QLD': 'Queensland',
+};
+
+const getGridZoneName = (zoneCode) => {
+  return gridZoneNames[zoneCode] || zoneCode;
+};
+
+// Helper to show API key status messages
+const showApiStatus = (type, message, isHTML = false) => {
+  const statusEl = document.getElementById('api-key-status');
+  statusEl.className = `api-status ${type}`;
+  if (isHTML) {
+    statusEl.innerHTML = message;
+  } else {
+    statusEl.textContent = message;
+  }
+};
+
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      { headers: { 'User-Agent': 'CurbYourCarbon Browser Extension' } }
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const address = data.address;
+    
+    const parts = [];
+    if (address.city || address.town || address.village) {
+      parts.push(address.city || address.town || address.village);
+    }
+    if (address.state) parts.push(address.state);
+    if (address.country) parts.push(address.country);
+    
+    return parts.length > 0 ? parts.join(', ') : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const tryGetLocationAutomatically = async () => {
+  const response = await new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'REQUEST_LOCATION' }, (response) => {
+      resolve(response || { success: false });
+    });
+  });
+  
+  if (response?.success) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await getLocationAndGridInfo();
+  } else {
+    document.getElementById('location-text').innerHTML = 'Location blocked';
+    showApiStatus('warning', `⚠️ Location access blocked. Please authorize location in your browser settings.`);
+  }
+};
+
 // Get cached location and grid info from storage (set by service worker)
 const getLocationAndGridInfo = async () => {
   try {
-    // Get cached grid intensity and location from storage (same keys as service worker)
     const result = await chrome.storage.local.get([
       'gridIntensityCache',
       'lastKnownLocation'
@@ -42,13 +136,13 @@ const getLocationAndGridInfo = async () => {
     let locationText = 'Location not detected';
     let gridIntensityText = `${BASELINE_GRID_INTENSITY} gCO₂/kWh (Global Average)`;
     let gridIntensity = BASELINE_GRID_INTENSITY;
-    
-    // Display location if available
     if (locationCache?.lat && locationCache?.lon) {
-      locationText = `Lat: ${locationCache.lat.toFixed(2)}, Lon: ${locationCache.lon.toFixed(2)}`;
+      const cityName = await reverseGeocode(locationCache.lat, locationCache.lon);
+      locationText = cityName || `Lat: ${locationCache.lat.toFixed(2)}, Lon: ${locationCache.lon.toFixed(2)}`;
+    } else {
+      locationText = 'Location not detected';
     }
     
-    // Display grid intensity if available and fresh
     if (gridCache?.intensity && typeof gridCache.intensity === 'number') {
       gridIntensity = gridCache.intensity;
       
@@ -57,31 +151,24 @@ const getLocationAndGridInfo = async () => {
         ? `${Math.abs(percentDiff).toFixed(0)}% cleaner than global avg` 
         : `${Math.abs(percentDiff).toFixed(0)}% dirtier than global avg`;
       
-      const zoneText = gridCache.zone ? ` (${gridCache.zone})` : '';
-      // Use HTML for better formatting with styled second line
+      const zoneName = gridCache.zone ? getGridZoneName(gridCache.zone) : null;
+      const zoneText = zoneName ? ` (${zoneName})` : '';
       const mainText = `${gridIntensity.toFixed(0)} gCO₂/kWh${zoneText}`;
       const comparisonText = `<span style="font-size: 0.85rem; opacity: 0.9;">${comparison}</span>`;
       gridIntensityText = `${mainText}\n${comparisonText}`;
-      
-      console.log('CurbYourCarbon: Using cached grid intensity:', gridIntensity, 'gCO₂/kWh');
-    } else {
-      console.log('CurbYourCarbon: No grid intensity cache, using global average');
     }
     
-    // Update displays
     document.getElementById('location-text').textContent = locationText;
     document.getElementById('grid-intensity-text').innerHTML = gridIntensityText;
     
     return { locationText, gridIntensity };
   } catch (error) {
-    console.error('CurbYourCarbon: Error reading location/grid cache:', error);
     document.getElementById('location-text').textContent = 'Unable to load location';
     document.getElementById('grid-intensity-text').innerHTML = `${BASELINE_GRID_INTENSITY} gCO₂/kWh (Global Average)`;
     return { locationText: 'Unknown', gridIntensity: BASELINE_GRID_INTENSITY };
   }
 };
 
-// Update device info display
 const updateDeviceInfo = async () => {
   try {
     const result = await chrome.storage.sync.get(['deviceType', 'detectedDevice']);
@@ -99,65 +186,46 @@ const updateDeviceInfo = async () => {
     
     document.getElementById('device-info-text').textContent = deviceNames[deviceType] || deviceNames.auto;
   } catch (error) {
-    console.warn('Could not load device info', error);
+    // Silently fail - use defaults
   }
 };
 
-// Update calculation formulas - show how service worker actually calculates
 const updateCalculationFormulas = (events, total) => {
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
   
-  // Get the actual grid intensity used (from first event with grid data)
   const eventWithGrid = events.find(e => e.data?.gridIntensity);
   const actualIntensity = eventWithGrid?.data?.gridIntensity || BASELINE_GRID_INTENSITY;
   const gridMultiplier = eventWithGrid?.data?.gridMultiplier || 1.0;
   
-  // Network formula
   const networkKwh = (totalMB / 1024) * 0.016;
   document.getElementById('network-formula').textContent = `${totalMB.toFixed(1)} MB transferred`;
   
-  // Energy formula
   document.getElementById('energy-formula').textContent = `Network energy = ${networkKwh.toFixed(4)} kWh`;
   
-  // Device formula (use average 20W for display)
   const deviceKwh = (totalTime / 60) * (20 / 1000);
   document.getElementById('device-formula').textContent = `${totalTime.toFixed(1)} min × 20W = ${deviceKwh.toFixed(4)} kWh`;
   
-  // Carbon formula - explain the actual methodology used
-  // Service worker calculates with baseline (400) then multiplies by regional factor
-  const totalKwh = networkKwh + deviceKwh;
-  const baselineCarbon = totalKwh * BASELINE_GRID_INTENSITY;
-  const adjustedCarbon = baselineCarbon * gridMultiplier;
-  
   document.getElementById('intensity-value').textContent = BASELINE_GRID_INTENSITY;
-  
-  // Show the actual stored total (which may differ slightly due to rounding/video overhead)
   document.getElementById('final-carbon').textContent = total.toFixed(1);
 };
 
-// Update education comparisons
 const updateEducationComparisons = (events, total) => {
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
   
-  // Comparison to average web browsing user
-  // Based on typical 3-4 hours browsing + 2GB data transfer per day
-  const avgDaily = 75; // ~75g per day for typical web browsing
+  const avgDaily = 75;
   
   let vsAverageText;
   if (total === 0) {
     vsAverageText = 'No carbon tracked yet';
   } else if (total < 50) {
-    // Very low usage - show as fraction of average
     const percentOfAverage = ((total / avgDaily) * 100).toFixed(1);
     vsAverageText = `${percentOfAverage}% of average 🎉`;
   } else if (total < avgDaily * 0.8) {
-    // Below average - show how much less
     const percentDiff = ((avgDaily - total) / avgDaily * 100);
     vsAverageText = `${percentDiff.toFixed(0)}% less than average 🎉`;
   } else if (total > avgDaily * 1.2) {
-    // Above average - show how much more
     const percentDiff = ((total - avgDaily) / avgDaily * 100);
     vsAverageText = `${percentDiff.toFixed(0)}% more than average`;
   } else {
@@ -169,7 +237,6 @@ const updateEducationComparisons = (events, total) => {
   document.getElementById('total-time').textContent = totalTime.toFixed(0);
 };
 
-// Update modern equivalencies display
 const updateModernEquivalencies = (total) => {
   const eq = calculateEquivalencies(total);
   document.getElementById('eq-miles').textContent = eq.milesDriven.toFixed(2);
@@ -244,7 +311,6 @@ const renderCategoryChart = (categoryTotals) => {
     .sort(([, a], [, b]) => b - a);
   const labels = categories.map(([key]) => categoryNames[key] || key);
   const data = categories.map(([, value]) => value);
-  // Yellow-green, green, blue-green for better distinction while staying eco-friendly
   const colors = ["#7CB342", "#43A047", "#26A69A"];
 
   categoryChart = new Chart(ctx, {
@@ -325,41 +391,19 @@ const renderDashboard = async (rangeKey) => {
     const { start, end } = getRange(rangeKey);
     const events = await storageManager.getEventsInRange(start, end);
     
-    console.log('CurbYourCarbon: Loaded events:', events.length);
-    console.log('CurbYourCarbon: First few events:', events.slice(0, 3));
-    
-    // Aggregate by category
     const categoryTotals = aggregateByCategory(events);
     const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
     
-    // Aggregate by platform
     const platformTotals = {};
-    events.forEach((event, index) => {
+    events.forEach((event) => {
       const platform = event.platform || 'unknown';
       const carbon = event.carbonGrams || 0;
-      
-      if (index < 3) {
-        console.log(`CurbYourCarbon: Event ${index}: platform=${platform}, carbon=${carbon}g`);
-      }
-      
-      if (!platformTotals[platform]) {
-        platformTotals[platform] = 0;
-      }
+      if (!platformTotals[platform]) platformTotals[platform] = 0;
       platformTotals[platform] += carbon;
     });
-    
-    // Verify the platform totals sum matches the category totals sum
-    const platformSum = Object.values(platformTotals).reduce((sum, v) => sum + v, 0);
-    console.log('CurbYourCarbon: Aggregated data:');
-    console.log('  - Total from categories:', total.toFixed(2), 'g');
-    console.log('  - Total from platforms:', platformSum.toFixed(2), 'g');
-    console.log('  - Categories:', categoryTotals);
-    console.log('  - Platforms:', platformTotals);
 
-    // Get cached location and grid info
     await getLocationAndGridInfo();
     
-    // Update all displays with ACTUAL data
     document.getElementById("total-impact").textContent = `${formatGrams(total)} CO₂`;
     updateCalculationFormulas(events, total);
     updateEducationComparisons(events, total);
@@ -367,7 +411,6 @@ const renderDashboard = async (rangeKey) => {
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
     
-    // Only show recommendations if total > 50g
     const recommendationsSection = document.getElementById("recommendations-section");
     if (total > 50) {
       recommendationsSection.style.display = "block";
@@ -376,7 +419,7 @@ const renderDashboard = async (rangeKey) => {
       recommendationsSection.style.display = "none";
     }
   } catch (error) {
-    console.error("CurbYourCarbon: Failed to render dashboard", error);
+    // Silently fail - dashboard will show defaults
   }
 };
 
@@ -395,64 +438,165 @@ const loadDeviceSetting = async () => {
     const result = await chrome.storage.sync.get(['deviceType', 'detectedDevice']);
     const deviceType = result.deviceType || 'auto';
     document.getElementById('device-type').value = deviceType;
-    
-    // Show what was detected if using auto
-    if (deviceType === 'auto' && result.detectedDevice) {
-      console.log('CurbYourCarbon: Auto-detected as', result.detectedDevice);
-    }
   } catch (error) {
-    console.warn('Could not load device setting', error);
+    // Silently fail - use defaults
   }
 };
 
 const saveDeviceSetting = async (deviceType) => {
   try {
-    // If user manually selects a device (not auto), clear the auto-detection flag
     if (deviceType !== 'auto') {
       await chrome.storage.sync.set({ deviceType, deviceDetected: false });
-      console.log('CurbYourCarbon: Device manually set to', deviceType);
     } else {
       await chrome.storage.sync.set({ deviceType: 'auto' });
-      console.log('CurbYourCarbon: Device set to auto-detect');
     }
-    updateDeviceInfo(); // Update the display
+    updateDeviceInfo();
     alert('Device setting saved!');
   } catch (error) {
-    console.warn('Could not save device setting', error);
     alert('Error saving device setting');
+  }
+};
+
+// Test API key with real API call
+const testApiKey = async (apiKey) => {
+  try {
+    const locationResult = await chrome.storage.local.get('lastKnownLocation');
+    const location = locationResult.lastKnownLocation;
+    
+    let url = 'https://api.electricitymaps.com/v3/carbon-intensity/latest';
+    
+    if (location?.lat && location?.lon) {
+      url += `?lat=${location.lat}&lon=${location.lon}`;
+    } else {
+      url += '?zone=US';
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'auth-token': apiKey }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return { valid: false, error: 'Invalid API key' };
+      }
+      return { valid: false, error: `API error (${response.status})` };
+    }
+    
+    const data = await response.json();
+    const intensity = data?.carbonIntensity || data?.carbonIntensityAvg || data?.intensity;
+    
+    if (typeof intensity !== 'number') {
+      return { valid: false, error: 'Invalid API response' };
+    }
+    
+    return { 
+      valid: true, 
+      intensity, 
+      zone: data?.zone || 'Unknown'
+    };
+  } catch (error) {
+    return { valid: false, error: 'Network error' };
   }
 };
 
 const loadApiKey = async () => {
   try {
-    const result = await chrome.storage.local.get('ELECTRICITY_MAPS_TOKEN');
+    const result = await chrome.storage.local.get(['ELECTRICITY_MAPS_TOKEN', 'gridIntensityCache']);
     const apiKey = result.ELECTRICITY_MAPS_TOKEN;
+    const gridCache = result.gridIntensityCache;
+    
     if (apiKey) {
       document.getElementById('api-key').value = apiKey;
+      
+      if (gridCache?.intensity && typeof gridCache.intensity === 'number') {
+        const percentDiff = ((BASELINE_GRID_INTENSITY - gridCache.intensity) / BASELINE_GRID_INTENSITY * 100);
+        const comparison = percentDiff > 0 
+          ? `${Math.abs(percentDiff).toFixed(0)}% cleaner` 
+          : `${Math.abs(percentDiff).toFixed(0)}% dirtier`;
+        
+        const zoneName = gridCache.zone ? getGridZoneName(gridCache.zone) : 'Unknown zone';
+        showApiStatus('success', `✅ Active - ${zoneName} (${gridCache.intensity.toFixed(0)} gCO₂/kWh, ${comparison} than global average)`);
+      } else {
+        // API key exists but no location - try to get it automatically
+        const locationResult = await chrome.storage.local.get('lastKnownLocation');
+        if (!locationResult.lastKnownLocation) {
+          await tryGetLocationAutomatically();
+        }
+      }
+    } else {
+      const warningHTML = `⚠️ No API key - using global average (${BASELINE_GRID_INTENSITY} gCO₂/kWh). <a href="https://api-portal.electricitymap.org/" target="_blank">Get free API key</a>`;
+      showApiStatus('warning', warningHTML, true);
     }
   } catch (error) {
-    console.warn('Could not load API key', error);
+    // Silently fail - show default warning
   }
 };
 
 const saveApiKey = async () => {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const statusEl = document.getElementById('api-key-status');
+  
   try {
-    const apiKey = document.getElementById('api-key').value.trim();
-    if (apiKey) {
-      await chrome.storage.local.set({ 'ELECTRICITY_MAPS_TOKEN': apiKey });
-      console.log('CurbYourCarbon: ElectricityMap API key saved');
-      alert('API key saved! Grid intensity will update on next tracking event.');
-    } else {
+    // If removing key
+    if (!apiKey) {
       await chrome.storage.local.remove('ELECTRICITY_MAPS_TOKEN');
+      await chrome.storage.local.remove('gridIntensityCache');
       console.log('CurbYourCarbon: API key removed');
-      alert('API key removed. Using global average intensity.');
+      
+      const warningHTML = `⚠️ No API key - using global average (${BASELINE_GRID_INTENSITY} gCO₂/kWh). <a href="https://api-portal.electricitymap.org/" target="_blank">Get free API key</a>`;
+      showApiStatus('warning', warningHTML, true);
+      
+      const active = document.querySelector(".range-toggle .active");
+      renderDashboard(active ? active.dataset.range : "today");
+      return;
     }
-    // Refresh the dashboard to show updated info
-    const active = document.querySelector(".range-toggle .active");
-    renderDashboard(active ? active.dataset.range : "today");
+    
+    // Show testing status
+    showApiStatus('testing', '🔄 Testing API key...');
+    
+    // Test the key
+    const result = await testApiKey(apiKey);
+    
+    if (result.valid) {
+      await chrome.storage.local.set({ 'ELECTRICITY_MAPS_TOKEN': apiKey });
+      await chrome.storage.local.set({
+        'gridIntensityCache': {
+          intensity: result.intensity,
+          zone: result.zone,
+          updatedAt: Date.now()
+        }
+      });
+      
+      const percentDiff = ((BASELINE_GRID_INTENSITY - result.intensity) / BASELINE_GRID_INTENSITY * 100);
+      const comparison = percentDiff > 0 
+        ? `${Math.abs(percentDiff).toFixed(0)}% cleaner` 
+        : `${Math.abs(percentDiff).toFixed(0)}% dirtier`;
+      
+      const zoneName = getGridZoneName(result.zone);
+      showApiStatus('success', `✅ API key valid! Using regional data (${zoneName}, ${result.intensity.toFixed(0)} gCO₂/kWh - ${comparison} than global average)`);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await getLocationAndGridInfo();
+      
+      // If no location, try to get it automatically
+      const locationCheck = await chrome.storage.local.get('lastKnownLocation');
+      if (!locationCheck.lastKnownLocation) {
+        await tryGetLocationAutomatically();
+      }
+      
+      const active = document.querySelector(".range-toggle .active");
+      renderDashboard(active ? active.dataset.range : "today");
+    } else {
+      // Invalid key - clear any cached grid data and don't save the key
+      await chrome.storage.local.remove('gridIntensityCache');
+      showApiStatus('error', `❌ ${result.error}. Please check your API key and try again.`);
+      
+      // Update grid display to show fallback to global average
+      await getLocationAndGridInfo();
+    }
   } catch (error) {
-    console.warn('Could not save API key', error);
-    alert('Error saving API key');
+    showApiStatus('error', '❌ Error testing API key. Check your internet connection.');
   }
 };
 
@@ -463,7 +607,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updateDeviceInfo();
   renderDashboard("today");
   
-  // Event listeners for settings
   document.getElementById('device-type').addEventListener('change', (e) => {
     saveDeviceSetting(e.target.value);
   });

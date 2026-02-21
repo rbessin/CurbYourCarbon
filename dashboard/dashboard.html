@@ -203,9 +203,11 @@
 
         <div class="setting-group">
           <label for="api-key">ElectricityMap API Key (Optional):</label>
-          <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
-          <button id="save-api-key" class="save-button">Save API Key</button>
-          <p class="setting-hint">Get free key at <a href="https://api-portal.electricitymap.org/" target="_blank">ElectricityMap</a></p>
+          <div class="api-key-input-group">
+            <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
+            <button id="save-api-key" class="save-button">Save</button>
+          </div>
+          <div id="api-key-status" class="api-status"></div>
         </div>
       </section>
 
