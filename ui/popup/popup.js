@@ -1,5 +1,5 @@
-import { StorageManager } from "../core/storage-manager.js";
-import { aggregateByCategory, calculateEquivalencies } from "../core/carbon-calculator.js";
+import { StorageManager } from "../../storage/storage-manager.js";
+import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon.js";
 
 const storageManager = new StorageManager();
 let categoryChart = null;
@@ -127,7 +127,7 @@ const init = () => {
   });
   
   document.getElementById("dashboard-button").addEventListener("click", () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("dashboard/dashboard.html") });
+    chrome.tabs.create({ url: chrome.runtime.getURL("ui/dashboard/dashboard.html") });
   });
 };
 

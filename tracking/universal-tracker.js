@@ -323,11 +323,11 @@
   };
 
   // Periodic summary (every 15 seconds for responsive updates)
-  const PERIODIC_INTERVAL = 15 * 1000;  // 15 seconds
+  const PERIODIC_INTERVAL = 15 * 1000; // 15 seconds
   const periodicSummary = setInterval(() => {
     const timeActive = state.activeTime.getActiveMinutes();
     const timeSinceLastSend = (Date.now() - state.lastSendTime) / 60000;
-    
+
     // Send if we have 10+ seconds of activity OR 15 seconds have passed
     if (timeActive >= 0.17 || timeSinceLastSend >= 0.23) {
       sendSummary("periodic");

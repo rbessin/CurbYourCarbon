@@ -148,14 +148,16 @@ const getDeviceInfo = async () => {
       else if (userAgent.includes("mac")) os = "macOS";
       else if (userAgent.includes("linux")) os = "Linux";
       else if (userAgent.includes("android")) os = "Android";
-      else if (userAgent.includes("iphone") || userAgent.includes("ipad")) os = "iOS";
+      else if (userAgent.includes("iphone") || userAgent.includes("ipad"))
+        os = "iOS";
       else if (userAgent.includes("cros")) os = "ChromeOS";
 
       // Detect device class
       const isMobile = /android|iphone|ipad|ipod|mobile/.test(userAgent);
-      const isTablet = (isMobile && Math.min(screenWidth, screenHeight) >= 600) || 
-                       userAgent.includes("ipad");
-      
+      const isTablet =
+        (isMobile && Math.min(screenWidth, screenHeight) >= 600) ||
+        userAgent.includes("ipad");
+
       let deviceClass = "desktop";
       if (isTablet) {
         deviceClass = "tablet";
@@ -180,13 +182,16 @@ const getDeviceInfo = async () => {
         os,
         isMobile,
         screenSize,
-        detectedAt: Date.now()
+        detectedAt: Date.now(),
       };
 
       // Cache in memory and storage
       window._cachedDeviceInfo = deviceInfo;
       chrome.storage.local.set({ deviceInfo }, () => {
-        console.log("CurbYourCarbon: Device info detected and stored", deviceInfo);
+        console.log(
+          "CurbYourCarbon: Device info detected and stored",
+          deviceInfo,
+        );
       });
 
       resolve(deviceInfo);

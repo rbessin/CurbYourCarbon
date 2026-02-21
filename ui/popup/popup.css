@@ -175,11 +175,11 @@ body {
 
 .tree-background {
   background: #e0e0e0;
-  mask-image: url('../assets/tree-mask.svg');
+  mask-image: url('../../assets/tree-mask.svg');
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
-  -webkit-mask-image: url('../assets/tree-mask.svg');
+  -webkit-mask-image: url('../../assets/tree-mask.svg');
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
@@ -187,11 +187,11 @@ body {
 
 .tree-fill {
   background: #4caf50;
-  mask-image: url('../assets/tree-mask.svg');
+  mask-image: url('../../assets/tree-mask.svg');
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
-  -webkit-mask-image: url('../assets/tree-mask.svg');
+  -webkit-mask-image: url('../../assets/tree-mask.svg');
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;

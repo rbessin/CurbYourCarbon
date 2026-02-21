@@ -1,6 +1,10 @@
-import { StorageManager } from "../core/storage-manager.js";
-import { aggregateByCategory, calculateEquivalencies } from "../core/carbon-calculator.js";
-import { BASELINE_GRID_INTENSITY, DEVICE_ENERGY } from "../core/constants.js";
+import { StorageManager } from "../../storage/storage-manager.js";
+import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon.js";
+import { BASELINE_GRID_INTENSITY } from "../../config/energy-constants.js";
+import { CATEGORY_DISPLAY_NAMES } from "../../config/categories.js";
+import { getGridZoneName } from "../../config/grid-zones.js";
+import { getDeviceDisplayName } from "../../config/devices.js";
+import { reverseGeocode } from "../../services/geocoding.js";
 
 const storageManager = new StorageManager();
 let categoryChart = null;
@@ -21,54 +25,7 @@ const getRange = (rangeKey) => {
   return { start, end };
 };
 
-const categoryNames = {
-  media: "Streaming & Social",
-  shopping: "Shopping",
-  browsing: "General Browsing"
-};
 
-const gridZoneNames = {
-  'US-NE-ISNE': 'New England ISO',
-  'US-NEISO': 'New England ISO',
-  'US-CAL': 'California',
-  'US-MIDA': 'Mid-Atlantic',
-  'US-NY': 'New York',
-  'US-PJM': 'PJM Interconnection',
-  'US-TEX': 'Texas',
-  'US-NW': 'Northwest',
-  'US-SE': 'Southeast',
-  'US-CENT': 'Central',
-  'US-FLA': 'Florida',
-  'US-MIDW': 'Midwest',
-  'US-CAR': 'Carolinas',
-  'US-TEN': 'Tennessee',
-  'GB': 'Great Britain',
-  'DE': 'Germany',
-  'FR': 'France',
-  'ES': 'Spain',
-  'IT': 'Italy',
-  'NL': 'Netherlands',
-  'BE': 'Belgium',
-  'CH': 'Switzerland',
-  'AT': 'Austria',
-  'DK': 'Denmark',
-  'NO': 'Norway',
-  'SE': 'Sweden',
-  'FI': 'Finland',
-  'PL': 'Poland',
-  'CZ': 'Czech Republic',
-  'CA-ON': 'Ontario',
-  'CA-QC': 'Quebec',
-  'CA-AB': 'Alberta',
-  'CA-BC': 'British Columbia',
-  'AU-NSW': 'New South Wales',
-  'AU-VIC': 'Victoria',
-  'AU-QLD': 'Queensland',
-};
-
-const getGridZoneName = (zoneCode) => {
-  return gridZoneNames[zoneCode] || zoneCode;
-};
 
 // Helper to show API key status messages
 const showApiStatus = (type, message, isHTML = false) => {
@@ -81,30 +38,7 @@ const showApiStatus = (type, message, isHTML = false) => {
   }
 };
 
-const reverseGeocode = async (lat, lon) => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { 'User-Agent': 'CurbYourCarbon Browser Extension' } }
-    );
-    
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    const address = data.address;
-    
-    const parts = [];
-    if (address.city || address.town || address.village) {
-      parts.push(address.city || address.town || address.village);
-    }
-    if (address.state) parts.push(address.state);
-    if (address.country) parts.push(address.country);
-    
-    return parts.length > 0 ? parts.join(', ') : null;
-  } catch (error) {
-    return null;
-  }
-};
+
 
 const tryGetLocationAutomatically = async () => {
   const response = await new Promise((resolve) => {
@@ -175,16 +109,7 @@ const updateDeviceInfo = async () => {
     const deviceType = result.deviceType || 'auto';
     const detectedDevice = result.detectedDevice || 'laptop';
     
-    const deviceNames = {
-      phone: '📱 Phone (5W)',
-      tablet: '📱 Tablet (10W)',
-      laptop: '💻 Laptop (20W)',
-      desktop: '🖥️ Desktop (40W)',
-      tv: '📺 TV (100W)',
-      auto: `🔍 Auto (${detectedDevice} detected)`
-    };
-    
-    document.getElementById('device-info-text').textContent = deviceNames[deviceType] || deviceNames.auto;
+    document.getElementById('device-info-text').textContent = getDeviceDisplayName(deviceType, detectedDevice);
   } catch (error) {
     // Silently fail - use defaults
   }
@@ -309,7 +234,7 @@ const renderCategoryChart = (categoryTotals) => {
   const categories = Object.entries(categoryTotals)
     .filter(([, value]) => value > 0)
     .sort(([, a], [, b]) => b - a);
-  const labels = categories.map(([key]) => categoryNames[key] || key);
+  const labels = categories.map(([key]) => CATEGORY_DISPLAY_NAMES[key] || key);
   const data = categories.map(([, value]) => value);
   const colors = ["#7CB342", "#43A047", "#26A69A"];
 
