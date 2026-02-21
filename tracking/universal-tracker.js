@@ -358,12 +358,14 @@
         const ua = navigator.userAgent;
         const width = window.screen.width;
         const height = window.screen.height;
+        const screenArea = width * height;
         const hasTouch = "ontouchstart" in window;
 
         let detected = "laptop"; // Safe default
 
-        // High-confidence detections
-        if (/iPhone|iPod/i.test(ua)) {
+        if (screenArea > 8000000) {
+          detected = "tv";
+        } else if (/iPhone|iPod/i.test(ua)) {
           detected = "phone";
         } else if (/iPad/i.test(ua)) {
           detected = "tablet";
@@ -374,7 +376,7 @@
         } else if (hasTouch && width >= 768 && width < 1366) {
           detected = "tablet";
         }
-        // Note: Cannot reliably distinguish laptop/desktop/tv, so default to laptop
+        // Note: Cannot reliably distinguish laptop/desktop, so default to laptop
 
         await chrome.storage.sync.set({
           detectedDevice: detected,
