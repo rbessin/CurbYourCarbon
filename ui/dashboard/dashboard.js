@@ -7,6 +7,7 @@ import { getDeviceDisplayName } from "../../config/devices.js";
 import { reverseGeocode } from "../../services/geocoding.js";
 import { getCurrentGoal, setGoal, getGoalHistory } from "../../storage/goal-storage.js";
 import { calculateProgress, getPeriodStart } from "../../calculators/goal-calculator.js";
+import { generateRecommendations } from "../../calculators/recommendations.js";
 import { ACHIEVEMENTS, getEarnedIds } from "../../calculators/achievements.js";
 import { getUnlockedAchievements, saveNewlyUnlocked } from "../../storage/achievement-storage.js";
 
@@ -196,47 +197,6 @@ const updateModernEquivalencies = (total) => {
   document.getElementById('eq-trees').textContent = (eq.treesNeeded * 365).toFixed(1);
 };
 
-const generateRecommendations = (events, categoryTotals, total) => {
-  const recommendations = [];
-  
-  const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
-  const videoMB = events.reduce((sum, e) => sum + (e.data?.videoMB || 0), 0);
-
-  if (categoryTotals.media > total * 0.3 && videoMB > 100) {
-    recommendations.push({ 
-      action: "Lower video quality", 
-      impact: `Save ~${formatGrams(categoryTotals.media * 0.3)} CO₂`, 
-      description: "Streaming at 720p instead of 1080p can reduce data transfer by 30-40%." 
-    });
-  }
-
-  if (totalMB > 500) {
-    recommendations.push({ 
-      action: "Use ad blocker", 
-      impact: `Save ~${formatGrams(total * 0.2)} CO₂`, 
-      description: "Ads and trackers account for ~20% of page weight. Blocking them reduces data transfer." 
-    });
-  }
-
-  if (categoryTotals.media > total * 0.5) {
-    recommendations.push({ 
-      action: "Reduce autoplay", 
-      impact: `Save ~${formatGrams(categoryTotals.media * 0.2)} CO₂`, 
-      description: "Disable autoplay on videos and social media to reduce unnecessary data transfer." 
-    });
-  }
-
-  if (recommendations.length === 0) {
-    recommendations.push({ 
-      action: "Keep up the good work!", 
-      impact: "Your usage is already efficient", 
-      description: "Continue being mindful of your digital habits." 
-    });
-  }
-
-  return recommendations;
-};
-
 const renderRecommendations = (recommendations) => {
   const container = document.getElementById("recommendations");
   if (!container) return;
@@ -364,7 +324,7 @@ const renderDashboard = async (rangeKey) => {
     updateModernEquivalencies(total);
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
-    renderRecommendations(generateRecommendations(events, categoryTotals, total));
+    renderRecommendations(await generateRecommendations(events, categoryTotals, total));
     await updateGoalProgress();
     await updateAchievements();
   } catch (error) {
