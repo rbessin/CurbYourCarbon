@@ -9,11 +9,9 @@
   </head>
   <body>
     <div class="dashboard">
+      <!-- Compact Header -->
       <header class="header">
-        <div class="header-content">
-          <h1>🌱 CurbYourCarbon Dashboard</h1>
-          <p class="subtitle">Performance API-powered carbon tracking</p>
-        </div>
+        <h1>🌱 CurbYourCarbon</h1>
         <div class="range-toggle">
           <button data-range="today" class="active">Today</button>
           <button data-range="week">Week</button>
@@ -21,45 +19,100 @@
         </div>
       </header>
 
-      <!-- Hero Section with Location & Grid Info -->
-      <section class="hero-section">
-        <div class="total-impact">
-          <div class="total-label">Total Carbon Footprint</div>
-          <div id="total-impact" class="total-value">0 g CO₂</div>
+      <!-- Compact Hero - One Row -->
+      <section class="hero-compact">
+        <div class="hero-item">
+          <div class="hero-label">Total Carbon</div>
+          <div id="total-impact" class="hero-value">0 g CO₂</div>
         </div>
-        
-        <div class="grid-info">
-          <div class="info-item">
-            <div class="info-icon">📍</div>
-            <div class="info-content">
-              <div class="info-label">Your Location</div>
-              <div id="location-text" class="info-value">Detecting...</div>
-            </div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-icon">⚡</div>
-            <div class="info-content">
-              <div class="info-label">Grid Carbon Intensity</div>
-              <div id="grid-intensity-text" class="info-value">Using global average</div>
-            </div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-icon">🖥️</div>
-            <div class="info-content">
-              <div class="info-label">Your Device</div>
-              <div id="device-info-text" class="info-value">Auto-detect</div>
-            </div>
-          </div>
+        <div class="hero-item">
+          <div class="hero-label">📍 Location</div>
+          <div id="location-text" class="hero-value">Detecting...</div>
+        </div>
+        <div class="hero-item">
+          <div class="hero-label">⚡ Grid Intensity</div>
+          <div id="grid-intensity-text" class="hero-value">Using global avg</div>
+        </div>
+        <div class="hero-item">
+          <div class="hero-label">🖥️ Device</div>
+          <div id="device-info-text" class="hero-value">Auto-detect</div>
         </div>
       </section>
 
-      <!-- Understanding CO2 Section -->
-      <section class="card education-card">
-        <h2>💡 Understanding Your Carbon Footprint</h2>
-        
-        <div class="education-content">
+      <!-- Stats Row: Impact Context + Equivalencies -->
+      <div class="stats-row">
+        <!-- Impact Context -->
+        <section class="stats-card">
+          <h3>Your Impact in Context</h3>
+          <div class="stat-item">
+            <span id="vs-average-label" class="stat-label">vs average user</span>
+            <span id="vs-average" class="stat-value">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">data transferred</span>
+            <span id="total-mb" class="stat-value">-- MB</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">time spent browsing</span>
+            <span id="total-time" class="stat-value">-- min</span>
+          </div>
+        </section>
+
+        <!-- Equivalencies -->
+        <section class="stats-card">
+          <h3>Real-World Equivalencies</h3>
+          <div class="stat-item">
+            <span class="stat-label">🚗 miles driven</span>
+            <span id="eq-miles" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">📱 phones charged</span>
+            <span id="eq-phones" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">🌳 tree-days to absorb</span>
+            <span id="eq-trees" class="stat-value">0</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <section class="chart-card">
+          <h3>📊 Category Breakdown</h3>
+          <canvas id="category-chart" height="200"></canvas>
+        </section>
+
+        <section class="chart-card">
+          <h3>🌐 Top Platforms</h3>
+          <canvas id="platform-chart" height="200"></canvas>
+        </section>
+      </div>
+
+      <!-- Recommendations -->
+      <section class="recommendations-card">
+        <h3>🎯 Recommendations to Reduce Impact</h3>
+        <div id="recommendations" class="recommendations-container"></div>
+      </section>
+
+      <!-- Modal Buttons -->
+      <div class="modal-buttons">
+        <button class="modal-btn" data-modal="learn">ℹ️ Learn More</button>
+        <button class="modal-btn" data-modal="calculate">🧮 How We Calculate</button>
+        <button class="modal-btn" data-modal="settings">⚙️ Settings</button>
+        <button class="modal-btn" data-modal="research">📚 Research</button>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay">
+      <!-- Learn More Modal -->
+      <div id="learn-modal" class="modal">
+        <div class="modal-header">
+          <h2>💡 Understanding Your Carbon Footprint</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
           <div class="edu-section">
             <h3>What is a gram of CO₂?</h3>
             <p>A gram of CO₂ is a tiny amount - you'd need about 2,000 grams to fill a 1-liter bottle. The average web user generates around 75g daily from browsing alone. Across billions of internet users, this adds up to a significant contributor to climate change.</p>
@@ -69,166 +122,123 @@
             <h3>What we track</h3>
             <p>CurbYourCarbon measures your <em>client-side</em> carbon footprint - the data transferred over the network and your device's energy consumption while browsing. We don't include server-side infrastructure like data centers, which would add 2-10x more depending on the service.</p>
           </div>
-          
-          <div class="edu-section">
-            <h3>Your Impact in Context</h3>
-            <div id="context-comparisons" class="comparison-grid">
-              <div class="comparison-item">
-                <div class="comparison-value" id="vs-average">--</div>
-                <div class="comparison-label">vs average user (~75g/day)</div>
-              </div>
-              <div class="comparison-item">
-                <div class="comparison-value" id="total-mb">-- MB</div>
-                <div class="comparison-label">data transferred</div>
-              </div>
-              <div class="comparison-item">
-                <div class="comparison-value" id="total-time">-- min</div>
-                <div class="comparison-label">active browsing</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="edu-section">
-            <h3>Real-World Equivalencies</h3>
-            <div class="equivalencies-modern" id="equivalencies">
-              <div class="eq-item">
-                <span class="eq-icon">🚗</span>
-                <span class="eq-text"><strong id="eq-miles">0</strong> miles driven</span>
-              </div>
-              <div class="eq-item">
-                <span class="eq-icon">📱</span>
-                <span class="eq-text"><strong id="eq-phones">0</strong> phones charged</span>
-              </div>
-              <div class="eq-item">
-                <span class="eq-icon">🌳</span>
-                <span class="eq-text"><strong id="eq-trees">0</strong> tree-days to absorb</span>
-              </div>
-            </div>
-          </div>
         </div>
-      </section>
-
-      <!-- Visual Breakdowns -->
-      <div class="grid-2">
-        <section class="card">
-          <h2>📊 Category Breakdown</h2>
-          <canvas id="category-chart" height="200"></canvas>
-        </section>
-
-        <section class="card">
-          <h2>🌐 Platform Breakdown</h2>
-          <p class="chart-subtitle">Top sites by carbon footprint</p>
-          <canvas id="platform-chart" height="200"></canvas>
-        </section>
       </div>
 
-      <!-- How We Calculate -->
-      <section class="card calculation-card">
-        <h2>🧮 How We Calculate Your Carbon Footprint</h2>
-        
-        <div class="calculation-breakdown">
-          <div class="calc-step">
-            <div class="calc-number">1</div>
-            <div class="calc-content">
-              <h3>Measure Actual Data Transfer</h3>
-              <p>Using browser Performance API, we measure every byte transferred:</p>
-              <div class="calc-formula">
-                <code id="network-formula">0 MB transferred</code>
+      <!-- Calculate Modal -->
+      <div id="calculate-modal" class="modal">
+        <div class="modal-header">
+          <h2>🧮 How We Calculate Your Carbon Footprint</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="calculation-breakdown">
+            <div class="calc-step">
+              <div class="calc-number">1</div>
+              <div class="calc-content">
+                <h3>Measure Actual Data Transfer</h3>
+                <p>Using browser Performance API, we measure every byte transferred:</p>
+                <div class="calc-formula">
+                  <code id="network-formula">0 MB transferred</code>
+                </div>
+              </div>
+            </div>
+            
+            <div class="calc-step">
+              <div class="calc-number">2</div>
+              <div class="calc-content">
+                <h3>Convert Data to Energy</h3>
+                <p>Based on IEA research: <strong>0.016 kWh per GB</strong></p>
+                <div class="calc-formula">
+                  <code id="energy-formula">Network energy = 0 kWh</code>
+                </div>
+              </div>
+            </div>
+            
+            <div class="calc-step">
+              <div class="calc-number">3</div>
+              <div class="calc-content">
+                <h3>Add Device Energy</h3>
+                <p>Your device consumes power while browsing:</p>
+                <div class="calc-formula">
+                  <code id="device-formula">0 min × 20W = 0 kWh</code>
+                </div>
+              </div>
+            </div>
+            
+            <div class="calc-step">
+              <div class="calc-number">4</div>
+              <div class="calc-content">
+                <h3>Apply Carbon Intensity (Baseline + Regional Adjustment)</h3>
+                <p>Calculate using baseline intensity (475 gCO₂/kWh), then adjust for your region:</p>
+                <div class="calc-formula">
+                  <code id="carbon-formula">Total energy × <span id="intensity-value">475</span> gCO₂/kWh = <span id="final-carbon">0g</span> CO₂</code>
+                </div>
+                <p style="margin-top: 0.5rem; font-size: 1.05rem; color: #666;">If regional data is available, this is multiplied by (regional intensity / baseline) for accuracy.</p>
               </div>
             </div>
           </div>
           
-          <div class="calc-step">
-            <div class="calc-number">2</div>
-            <div class="calc-content">
-              <h3>Convert Data to Energy</h3>
-              <p>Based on IEA research: <strong>0.016 kWh per GB</strong></p>
-              <div class="calc-formula">
-                <code id="energy-formula">Network energy = 0 kWh</code>
-              </div>
+          <div class="research-note">
+            <strong>Research-backed:</strong> All calculations based on peer-reviewed studies from IEA (2024), Carbon Trust (2021), and Greenspector (2021).
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Modal -->
+      <div id="settings-modal" class="modal">
+        <div class="modal-header">
+          <h2>⚙️ Settings</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label for="device-type">Device Type:</label>
+            <select id="device-type">
+              <option value="auto" selected>🔍 Auto-detect</option>
+              <option value="phone">📱 Phone (5W)</option>
+              <option value="tablet">📱 Tablet (10W)</option>
+              <option value="laptop">💻 Laptop (20W)</option>
+              <option value="desktop">🖥️ Desktop (40W)</option>
+              <option value="tv">📺 TV (100W)</option>
+            </select>
+            <p class="setting-hint">Device energy consumption varies 20x from phone to TV</p>
+          </div>
+
+          <div class="setting-group">
+            <label for="api-key">ElectricityMap API Key (Optional):</label>
+            <div class="api-key-input-group">
+              <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
+              <button id="save-api-key" class="save-button">Save</button>
             </div>
-          </div>
-          
-          <div class="calc-step">
-            <div class="calc-number">3</div>
-            <div class="calc-content">
-              <h3>Add Device Energy</h3>
-              <p>Your device consumes power while browsing:</p>
-              <div class="calc-formula">
-                <code id="device-formula">0 min × 20W = 0 kWh</code>
-              </div>
-            </div>
-          </div>
-          
-          <div class="calc-step">
-            <div class="calc-number">4</div>
-            <div class="calc-content">
-              <h3>Apply Carbon Intensity (Baseline + Regional Adjustment)</h3>
-              <p>Calculate using baseline intensity (475 gCO₂/kWh), then adjust for your region:</p>
-              <div class="calc-formula">
-                <code id="carbon-formula">Total energy × <span id="intensity-value">475</span> gCO₂/kWh = <span id="final-carbon">0g</span> CO₂</code>
-              </div>
-              <p style="margin-top: 0.5rem; font-size: 1.05rem; color: #666;">If regional data is available, this is multiplied by (regional intensity / baseline) for accuracy.</p>
-            </div>
+            <div id="api-key-status" class="api-status"></div>
           </div>
         </div>
-        
-        <div class="research-note">
-          <strong>Research-backed:</strong> All calculations based on peer-reviewed studies from IEA (2024), Carbon Trust (2021), and Greenspector (2021).
+      </div>
+
+      <!-- Research Modal -->
+      <div id="research-modal" class="modal">
+        <div class="modal-header">
+          <h2>📚 Research Sources</h2>
+          <button class="modal-close">&times;</button>
         </div>
-      </section>
-
-      <!-- Recommendations (only if significant data) -->
-      <section class="card recommendations-card" id="recommendations-section" style="display: none;">
-        <h2>🎯 Recommendations to Reduce Impact</h2>
-        <div id="recommendations" class="recommendations-container"></div>
-      </section>
-
-      <!-- Settings -->
-      <section class="card settings-card">
-        <h2>⚙️ Settings</h2>
-        
-        <div class="setting-group">
-          <label for="device-type">Device Type:</label>
-          <select id="device-type">
-            <option value="auto" selected>🔍 Auto-detect</option>
-            <option value="phone">📱 Phone (5W)</option>
-            <option value="tablet">📱 Tablet (10W)</option>
-            <option value="laptop">💻 Laptop (20W)</option>
-            <option value="desktop">🖥️ Desktop (40W)</option>
-            <option value="tv">📺 TV (100W)</option>
-          </select>
-          <p class="setting-hint">Device energy consumption varies 20x from phone to TV</p>
-        </div>
-
-        <div class="setting-group">
-          <label for="api-key">ElectricityMap API Key (Optional):</label>
-          <div class="api-key-input-group">
-            <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
-            <button id="save-api-key" class="save-button">Save</button>
+        <div class="modal-body">
+          <div class="sources-list">
+            <a href="https://www.iea.org/commentaries/the-carbon-footprint-of-streaming-video-fact-checking-the-headlines" target="_blank">
+              IEA: Carbon Footprint of Streaming Video (2024)
+            </a>
+            <a href="https://www.carbontrust.com/our-work-and-impact/guides-reports-and-tools/carbon-impact-of-video-streaming" target="_blank">
+              Carbon Trust: Video Streaming Study (2021)
+            </a>
+            <a href="https://greenspector.com/en/social-media-2021/" target="_blank">
+              Greenspector: Social Media Impact (2021)
+            </a>
+            <a href="https://github.com/rbessin/CurbYourCarbon" target="_blank">
+              View Full Documentation on GitHub →
+            </a>
           </div>
-          <div id="api-key-status" class="api-status"></div>
         </div>
-      </section>
-
-      <!-- Research Sources -->
-      <footer class="dashboard-footer">
-        <h3>📚 Research Sources</h3>
-        <div class="sources-grid">
-          <a href="https://www.iea.org/commentaries/the-carbon-footprint-of-streaming-video-fact-checking-the-headlines" target="_blank">
-            IEA: Carbon Footprint of Streaming Video (2024)
-          </a>
-          <a href="https://www.carbontrust.com/our-work-and-impact/guides-reports-and-tools/carbon-impact-of-video-streaming" target="_blank">
-            Carbon Trust: Video Streaming Study (2021)
-          </a>
-          <a href="https://greenspector.com/en/social-media-2021/" target="_blank">
-            Greenspector: Social Media Impact (2021)
-          </a>
-          <a href="https://github.com/rbessin/CurbYourCarbon" target="_blank">
-            View Full Documentation on GitHub →
-          </a>
-        </div>
-      </footer>
+      </div>
     </div>
 
     <script type="module" src="dashboard.js"></script>

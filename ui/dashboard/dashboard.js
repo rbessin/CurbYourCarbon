@@ -86,10 +86,15 @@ const getLocationAndGridInfo = async () => {
         : `${Math.abs(percentDiff).toFixed(0)}% dirtier than global avg`;
       
       const zoneName = gridCache.zone ? getGridZoneName(gridCache.zone) : null;
-      const zoneText = zoneName ? ` (${zoneName})` : '';
-      const mainText = `${gridIntensity.toFixed(0)} gCO₂/kWh${zoneText}`;
-      const comparisonText = `<span style="font-size: 0.85rem; opacity: 0.9;">${comparison}</span>`;
-      gridIntensityText = `${mainText}\n${comparisonText}`;
+      
+      // Three lines: intensity, zone, comparison
+      const intensityLine = `${gridIntensity.toFixed(0)} gCO₂/kWh`;
+      const zoneLine = zoneName ? `<span style="font-size: 0.85rem; opacity: 0.9;">${zoneName}</span>` : '';
+      const comparisonLine = `<span style="font-size: 0.75rem; opacity: 0.85;">${comparison}</span>`;
+      
+      gridIntensityText = zoneName 
+        ? `${intensityLine}\n${zoneLine}\n${comparisonLine}`
+        : `${intensityLine}\n${comparisonLine}`;
     }
     
     document.getElementById('location-text').textContent = locationText;
@@ -135,23 +140,36 @@ const updateCalculationFormulas = (events, total) => {
   document.getElementById('final-carbon').textContent = total.toFixed(1);
 };
 
-const updateEducationComparisons = (events, total) => {
+const updateEducationComparisons = (events, total, rangeKey) => {
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
   
   const avgDaily = 75;
+  const days = rangeKey === 'today' ? 1 : (rangeKey === 'week' ? 7 : 30);
+  const avgForPeriod = avgDaily * days;
+  
+  // Update label based on range
+  const labelEl = document.getElementById('vs-average-label');
+  if (labelEl) {
+    const labelText = rangeKey === 'today' 
+      ? 'vs average user (75g/day)'
+      : rangeKey === 'week'
+      ? 'vs average user (525g/week)'
+      : 'vs average user (2.25kg/month)';
+    labelEl.textContent = labelText;
+  }
   
   let vsAverageText;
   if (total === 0) {
     vsAverageText = 'No carbon tracked yet';
-  } else if (total < 50) {
-    const percentOfAverage = ((total / avgDaily) * 100).toFixed(1);
+  } else if (total < avgForPeriod * 0.5) {
+    const percentOfAverage = ((total / avgForPeriod) * 100).toFixed(1);
     vsAverageText = `${percentOfAverage}% of average 🎉`;
-  } else if (total < avgDaily * 0.8) {
-    const percentDiff = ((avgDaily - total) / avgDaily * 100);
+  } else if (total < avgForPeriod * 0.8) {
+    const percentDiff = ((avgForPeriod - total) / avgForPeriod * 100);
     vsAverageText = `${percentDiff.toFixed(0)}% less than average 🎉`;
-  } else if (total > avgDaily * 1.2) {
-    const percentDiff = ((total - avgDaily) / avgDaily * 100);
+  } else if (total > avgForPeriod * 1.2) {
+    const percentDiff = ((total - avgForPeriod) / avgForPeriod * 100);
     vsAverageText = `${percentDiff.toFixed(0)}% more than average`;
   } else {
     vsAverageText = 'About average';
@@ -159,7 +177,12 @@ const updateEducationComparisons = (events, total) => {
   
   document.getElementById('vs-average').textContent = vsAverageText;
   document.getElementById('total-mb').textContent = `${totalMB.toFixed(1)} MB`;
-  document.getElementById('total-time').textContent = totalTime.toFixed(0);
+  
+  // Format time: show hours if >= 60 minutes
+  const timeText = totalTime >= 60 
+    ? `${(totalTime / 60).toFixed(1)} hr`
+    : `${totalTime.toFixed(0)} min`;
+  document.getElementById('total-time').textContent = timeText;
 };
 
 const updateModernEquivalencies = (total) => {
@@ -301,7 +324,9 @@ const renderPlatformChart = (platformTotals) => {
         tooltip: {
           callbacks: {
             label: function(context) {
-              const value = context.parsed.y || context.parsed.x;
+              // When horizontal (indexAxis: 'y'), value is in x. When vertical, value is in y.
+              const isHorizontal = context.chart.options.indexAxis === 'y';
+              const value = isHorizontal ? context.parsed.x : context.parsed.y;
               return `${formatGrams(value)} CO₂`;
             }
           }
@@ -331,18 +356,11 @@ const renderDashboard = async (rangeKey) => {
     
     document.getElementById("total-impact").textContent = `${formatGrams(total)} CO₂`;
     updateCalculationFormulas(events, total);
-    updateEducationComparisons(events, total);
+    updateEducationComparisons(events, total, rangeKey);
     updateModernEquivalencies(total);
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
-    
-    const recommendationsSection = document.getElementById("recommendations-section");
-    if (total > 50) {
-      recommendationsSection.style.display = "block";
-      renderRecommendations(generateRecommendations(events, categoryTotals, total));
-    } else {
-      recommendationsSection.style.display = "none";
-    }
+    renderRecommendations(generateRecommendations(events, categoryTotals, total));
   } catch (error) {
     // Silently fail - dashboard will show defaults
   }
@@ -355,6 +373,42 @@ const bindRangeButtons = () => {
       button.classList.add("active");
       renderDashboard(button.dataset.range);
     });
+  });
+};
+
+const initModals = () => {
+  const overlay = document.getElementById('modal-overlay');
+  
+  // Open modal
+  document.querySelectorAll('.modal-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = `${btn.dataset.modal}-modal`;
+      const modal = document.getElementById(modalId);
+      
+      overlay.classList.add('active');
+      modal.classList.add('active');
+    });
+  });
+  
+  // Close modal
+  const closeModal = () => {
+    overlay.classList.remove('active');
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+  };
+  
+  // Close on X button
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', closeModal);
+  });
+  
+  // Close on overlay click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+  
+  // Close on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
   });
 };
 
@@ -527,6 +581,7 @@ const saveApiKey = async () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   bindRangeButtons();
+  initModals();
   loadDeviceSetting();
   loadApiKey();
   updateDeviceInfo();
