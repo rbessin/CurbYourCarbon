@@ -431,26 +431,37 @@ body {
   line-height: 1.5;
 }
 
-/* Settings in Modal */
-.setting-group {
+/* Settings in Modal - Two Column Layout */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
-.setting-group:last-child {
+.setting-row:last-child {
   margin-bottom: 0;
 }
 
-.setting-group label {
-  display: block;
-  font-size: 0.95rem;
+.setting-label {
+  background: #f5f5f5;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: #2f7d32;
+  min-width: 140px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
-.setting-group select,
-.setting-group input {
-  width: 100%;
+.setting-input,
+.setting-input-group,
+.export-button {
+  flex: 1;
+}
+
+.setting-input {
   padding: 0.75rem;
   border: 1px solid #d0d0d0;
   border-radius: 6px;
@@ -458,29 +469,29 @@ body {
   transition: border-color 0.2s;
 }
 
-.api-key-input-group {
+.setting-input-group {
   display: flex;
   gap: 0.75rem;
   align-items: stretch;
 }
 
-.api-key-input-group input {
+.setting-input-group input {
   flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 0.9rem;
   font-family: monospace;
+  transition: border-color 0.2s;
 }
 
-.api-key-input-group button {
-  margin-top: 0;
-  white-space: nowrap;
-}
-
-.setting-group input:hover,
-.setting-group select:hover {
+.setting-input:hover,
+.setting-input-group input:hover {
   border-color: #2f7d32;
 }
 
-.setting-group input:focus,
-.setting-group select:focus {
+.setting-input:focus,
+.setting-input-group input:focus {
   outline: none;
   border-color: #2f7d32;
   box-shadow: 0 0 0 3px rgba(47, 125, 50, 0.1);
@@ -496,7 +507,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .save-button:hover {
@@ -509,15 +520,30 @@ body {
   transform: translateY(0);
 }
 
-.setting-hint {
+.export-button {
+  padding: 0.75rem 1.5rem;
+  background: #2f7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
   font-size: 0.9rem;
-  color: #666;
-  margin-top: 0.5rem;
-  line-height: 1.4;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-button:hover {
+  background: #1b5e20;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(47, 125, 50, 0.3);
+}
+
+.export-button:active {
+  transform: translateY(0);
 }
 
 .api-status {
-  margin-top: 0.75rem;
+  margin: 0 0 1.5rem 0;
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 0.95rem;

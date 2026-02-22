@@ -512,6 +512,68 @@ const loadApiKey = async () => {
   }
 };
 
+const exportDataAsCSV = async () => {
+  try {
+    // Get all events from storage
+    const db = await storageManager.initDB();
+    const events = await new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readonly');
+      const store = tx.objectStore('events');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    
+    if (events.length === 0) {
+      alert('No data to export yet. Browse some websites first!');
+      return;
+    }
+    
+    // Create CSV content
+    const headers = ['Date', 'Time', 'Platform', 'Category', 'Carbon (g)', 'Data (MB)', 'Time (min)', 'Grid (gCO2/kWh)', 'Zone'];
+    const rows = events.map(event => {
+      const date = new Date(event.timestamp);
+      const dateStr = date.toLocaleDateString('en-US');
+      const timeStr = date.toLocaleTimeString('en-US');
+      
+      return [
+        dateStr,
+        timeStr,
+        event.platform || 'unknown',
+        event.type || 'browsing',
+        (event.carbonGrams || 0).toFixed(2),
+        (event.data?.totalMB || 0).toFixed(2),
+        (event.data?.timeActive || 0).toFixed(2),
+        event.data?.gridIntensity || BASELINE_GRID_INTENSITY,
+        event.data?.gridZone || 'N/A'
+      ];
+    });
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const today = new Date().toISOString().split('T')[0];
+    link.download = `curbyourcarbon-export-${today}.csv`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert(`Exported ${events.length} events successfully!`);
+  } catch (error) {
+    alert('Error exporting data. Please try again.');
+  }
+};
+
 const saveApiKey = async () => {
   const apiKey = document.getElementById('api-key').value.trim();
   const statusEl = document.getElementById('api-key-status');
@@ -592,6 +654,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   
   document.getElementById('save-api-key').addEventListener('click', saveApiKey);
+  
+  document.getElementById('export-csv').addEventListener('click', exportDataAsCSV);
   
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") {

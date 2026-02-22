@@ -192,9 +192,9 @@
           <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="setting-group">
-            <label for="device-type">Device Type:</label>
-            <select id="device-type">
+          <div class="setting-row">
+            <div class="setting-label">Device Type</div>
+            <select id="device-type" class="setting-input">
               <option value="auto" selected>🔍 Auto-detect</option>
               <option value="phone">📱 Phone (5W)</option>
               <option value="tablet">📱 Tablet (10W)</option>
@@ -202,16 +202,21 @@
               <option value="desktop">🖥️ Desktop (40W)</option>
               <option value="tv">📺 TV (100W)</option>
             </select>
-            <p class="setting-hint">Device energy consumption varies 20x from phone to TV</p>
           </div>
 
-          <div class="setting-group">
-            <label for="api-key">ElectricityMap API Key (Optional):</label>
-            <div class="api-key-input-group">
-              <input type="password" id="api-key" placeholder="For regional carbon intensity accuracy">
+          <div class="setting-row">
+            <div class="setting-label">API Key</div>
+            <div class="setting-input-group">
+              <input type="password" id="api-key" placeholder="ElectricityMap API key">
               <button id="save-api-key" class="save-button">Save</button>
             </div>
-            <div id="api-key-status" class="api-status"></div>
+          </div>
+          
+          <div id="api-key-status" class="api-status"></div>
+
+          <div class="setting-row">
+            <div class="setting-label">Export Data</div>
+            <button id="export-csv" class="export-button">📄 Export CSV</button>
           </div>
         </div>
       </div>
