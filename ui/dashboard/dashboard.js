@@ -1,12 +1,16 @@
-import { StorageManager } from "../../storage/storage-manager.js";
-import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon.js";
+import { TrackingStorage } from "../../storage/tracking-storage.js";
+import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon-calculator.js";
 import { BASELINE_GRID_INTENSITY } from "../../config/energy-constants.js";
 import { CATEGORY_DISPLAY_NAMES } from "../../config/categories.js";
 import { getGridZoneName } from "../../config/grid-zones.js";
 import { getDeviceDisplayName } from "../../config/devices.js";
 import { reverseGeocode } from "../../services/geocoding.js";
+import { getCurrentGoal, setGoal, getGoalHistory } from "../../storage/goal-storage.js";
+import { calculateProgress, getPeriodStart } from "../../calculators/goal-calculator.js";
+import { ACHIEVEMENTS, getEarnedIds } from "../../calculators/achievements.js";
+import { getUnlockedAchievements, saveNewlyUnlocked } from "../../storage/achievement-storage.js";
 
-const storageManager = new StorageManager();
+const trackingStorage = new TrackingStorage();
 let categoryChart = null;
 let platformChart = null;
 
@@ -339,7 +343,7 @@ const renderPlatformChart = (platformTotals) => {
 const renderDashboard = async (rangeKey) => {
   try {
     const { start, end } = getRange(rangeKey);
-    const events = await storageManager.getEventsInRange(start, end);
+    const events = await trackingStorage.getEventsInRange(start, end);
     
     const categoryTotals = aggregateByCategory(events);
     const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
@@ -361,6 +365,8 @@ const renderDashboard = async (rangeKey) => {
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
     renderRecommendations(generateRecommendations(events, categoryTotals, total));
+    await updateGoalProgress();
+    await updateAchievements();
   } catch (error) {
     // Silently fail - dashboard will show defaults
   }
@@ -512,10 +518,130 @@ const loadApiKey = async () => {
   }
 };
 
+const updateGoalProgress = async () => {
+  const goal = await getCurrentGoal();
+  const progressSection = document.getElementById('goal-progress');
+  
+  if (!goal) {
+    progressSection.style.display = 'none';
+    return;
+  }
+  
+  progressSection.style.display = 'block';
+  
+  // Get carbon for this week
+  const periodStart = getPeriodStart();
+  const now = new Date();
+  const events = await trackingStorage.getEventsInRange(periodStart, now);
+  const categoryTotals = aggregateByCategory(events);
+  const currentCarbon = Object.values(categoryTotals).reduce((sum, v) => sum + v, 0);
+  
+  // Calculate progress
+  const progress = calculateProgress(currentCarbon, goal);
+  
+  const progressBar = document.getElementById('progress-bar-fill');
+  progressBar.style.width = `${progress.percentage}%`;
+  
+  const barLabel = document.getElementById('progress-bar-label');
+  barLabel.textContent = `${currentCarbon.toFixed(1)}g / ${goal.amount}g`;
+  if (progress.status === 'over') {
+    progressBar.classList.add('over-goal');
+  } else {
+    progressBar.classList.remove('over-goal');
+  }
+  
+  // Show current streak stat row
+  const history = await getGoalHistory();
+  const streakDisplay = document.getElementById('streak-display');
+  if (history.currentStreak > 0) {
+    streakDisplay.style.display = 'inline';
+    document.getElementById('streak-count').textContent = history.currentStreak;
+  } else {
+    streakDisplay.style.display = 'none';
+  }
+
+  // ── Goal stats row ──────────────────────────────────────────
+  // Days left in the week (Mon = 7, Tue = 6, … Sun = 1)
+  const todayDow = now.getDay();
+  const daysLeft = todayDow === 0 ? 1 : 8 - todayDow;
+
+  // Daily budget: how many grams per remaining day to still hit goal
+  const remainingCarbon = Math.max(0, goal.amount - currentCarbon);
+  const dailyBudget = daysLeft > 0 ? Math.round(remainingCarbon / daysLeft) : 0;
+
+  const bestStreakEl = document.getElementById('goal-best-streak');
+  const best = history.bestStreak ?? 0;
+  bestStreakEl.textContent = best > 0 ? `${best} ${best === 1 ? 'week' : 'weeks'}` : '—';
+
+  const totalMetEl = document.getElementById('goal-total-met');
+  const total = history.totalAchieved ?? 0;
+  totalMetEl.textContent = total > 0 ? `${total} ${total === 1 ? 'time' : 'times'}` : '—';
+};
+
+const updateAchievements = async () => {
+  const [goal, history, totalImpact] = await Promise.all([
+    getCurrentGoal(),
+    getGoalHistory(),
+    trackingStorage.getTotalImpact(),
+  ]);
+
+  // Weekly carbon for Overachiever context (current week so far)
+  const periodStart = getPeriodStart();
+  const weekEvents = await trackingStorage.getEventsInRange(periodStart, new Date());
+  const weekCarbon = weekEvents.reduce((sum, e) => sum + (e.carbonGrams || 0), 0);
+
+  const context = { goal, history, totalImpact, weekCarbon };
+  const earnedIds = getEarnedIds(context);
+  await saveNewlyUnlocked(earnedIds);
+
+  // Build render data: merge definition with unlock date
+  const unlocked = await getUnlockedAchievements();
+
+  const container = document.getElementById('achievements-grid');
+  if (!container) return;
+
+  const unlockedCount = Object.keys(unlocked).length;
+  const countEl = document.getElementById('achievements-count');
+  if (countEl) countEl.textContent = `${unlockedCount} / ${ACHIEVEMENTS.length}`;
+
+  container.innerHTML = ACHIEVEMENTS.map(a => {
+    const isUnlocked = !!unlocked[a.id];
+    const unlockedAt = unlocked[a.id]?.unlockedAt ?? null;
+    return `
+      <div class="badge ${isUnlocked ? 'badge--unlocked' : 'badge--locked'}">
+        <div class="badge__emoji">${isUnlocked ? a.emoji : '🔒'}</div>
+        <div class="badge__name">${a.name}</div>
+        <div class="badge__desc">${a.description}</div>
+        ${isUnlocked && unlockedAt ? `<div class="badge__date">${unlockedAt}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+};
+
+const handleSetGoal = async () => {
+  const amount = parseInt(document.getElementById('goal-amount').value);
+  
+  await setGoal(amount);
+  alert(`Goal set: ${amount}g/week`);
+  
+  // Refresh progress display
+  await updateGoalProgress();
+};
+
+const loadCurrentGoal = async () => {
+  const goal = await getCurrentGoal();
+  
+  if (goal) {
+    // Set dropdown to current goal amount
+    const select = document.getElementById('goal-amount');
+    select.value = goal.amount.toString();
+  }
+};
+
 const exportDataAsCSV = async () => {
   try {
     // Get all events from storage
-    const db = await storageManager.initDB();
+    const db = await trackingStorage.initDB();
     const events = await new Promise((resolve, reject) => {
       const tx = db.transaction('events', 'readonly');
       const store = tx.objectStore('events');
@@ -646,6 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initModals();
   loadDeviceSetting();
   loadApiKey();
+  loadCurrentGoal();
   updateDeviceInfo();
   renderDashboard("today");
   
@@ -656,6 +783,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('save-api-key').addEventListener('click', saveApiKey);
   
   document.getElementById('export-csv').addEventListener('click', exportDataAsCSV);
+  
+  document.getElementById('set-goal-btn').addEventListener('click', handleSetGoal);
   
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") {

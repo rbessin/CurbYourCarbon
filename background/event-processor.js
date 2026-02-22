@@ -3,19 +3,19 @@
  *
  * Handles TRACK_EVENT messages from content scripts
  */
-import { StorageManager } from "../storage/storage-manager.js";
+import { TrackingStorage } from "../storage/tracking-storage.js";
 import {
   calculateTotalCarbon,
   calculateCarbonRate,
   getDeviceEnergyConsumption,
-} from "../calculators/carbon.js";
+} from "../calculators/carbon-calculator.js";
 import {
   getRealtimeGridIntensity,
   getGridMultiplier,
 } from "../services/electricity-maps.js";
 import { BASELINE_GRID_INTENSITY } from "../config/energy-constants.js";
 
-const storageManager = new StorageManager();
+const trackingStorage = new TrackingStorage();
 
 /**
  * Get date key for daily summaries
@@ -36,7 +36,7 @@ const getDateKey = (timestamp) => {
  */
 const updateDailySummary = async (eventRecord) => {
   const dateKey = getDateKey(eventRecord.timestamp);
-  const existing = (await storageManager.getDailySummary(dateKey)) || {
+  const existing = (await trackingStorage.getDailySummary(dateKey)) || {
     date: dateKey,
     totalCarbon: 0,
     byCategory: { media: 0, shopping: 0, browsing: 0 },
@@ -56,7 +56,7 @@ const updateDailySummary = async (eventRecord) => {
   }
   existing.byPlatform[eventRecord.platform] += eventRecord.carbonGrams;
 
-  await storageManager.saveDailySummary(existing);
+  await trackingStorage.saveDailySummary(existing);
 };
 
 /**
@@ -130,7 +130,7 @@ export const processTrackingEvent = async (payload) => {
     carbonRate,
   };
 
-  await storageManager.saveEvent(eventRecord);
+  await trackingStorage.saveEvent(eventRecord);
   await updateDailySummary(eventRecord);
 
   return {
@@ -145,4 +145,4 @@ export const processTrackingEvent = async (payload) => {
 };
 
 // Expose storage manager for debugging
-export { storageManager };
+export { trackingStorage };

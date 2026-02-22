@@ -3,14 +3,14 @@
  *
  * Routes messages and coordinates between services
  */
-import { processTrackingEvent, storageManager } from "./event-processor.js";
+import { processTrackingEvent, trackingStorage } from "./event-processor.js";
 import {
   requestGeolocationFromOffscreen,
   setLastKnownLocation,
 } from "../services/electricity-maps.js";
 
 // Expose for debugging
-globalThis.storageManager = storageManager;
+globalThis.trackingStorage = trackingStorage;
 
 /**
  * Handle location request from dashboard

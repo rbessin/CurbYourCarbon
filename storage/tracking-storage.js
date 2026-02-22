@@ -1,9 +1,9 @@
 /**
- * IndexedDB storage manager for carbon events and summaries.
+ * Tracking storage - IndexedDB for carbon events and summaries
  */
 import { DB_NAME, STORE_NAMES } from "../config/energy-constants.js";
 
-export class StorageManager {
+export class TrackingStorage {
   constructor() {
     this.dbPromise = null;
   }

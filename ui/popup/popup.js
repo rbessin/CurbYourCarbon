@@ -1,7 +1,7 @@
-import { StorageManager } from "../../storage/storage-manager.js";
-import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon.js";
+import { TrackingStorage } from "../../storage/tracking-storage.js";
+import { aggregateByCategory, calculateEquivalencies } from "../../calculators/carbon-calculator.js";
 
-const storageManager = new StorageManager();
+const trackingStorage = new TrackingStorage();
 let categoryChart = null;
 
 const formatGrams = (grams) => {
@@ -89,7 +89,7 @@ const updateTreeVisualization = (totalGrams) => {
 
 const renderPopup = async () => {
   try {
-    const events = await storageManager.getEventsToday();
+    const events = await trackingStorage.getEventsToday();
     const mostRecentEvent = events.reduce((latest, event) => {
       if (!latest) return event;
       return (event.timestamp || 0) > (latest.timestamp || 0) ? event : latest;

@@ -95,6 +95,58 @@
         <div id="recommendations" class="recommendations-container"></div>
       </section>
 
+      <!-- Goals & Achievements Row -->
+      <div class="goals-row">
+        <!-- Goal Management -->
+        <section class="goal-card">
+          <div class="goal-header">
+            <h3>🎯 Weekly Carbon Goal</h3>
+            <div class="goal-setter">
+              <select id="goal-amount" class="goal-select">
+                <option value="350">🌿 Eco Warrior — 350g</option>
+                <option value="525" selected>📊 Average — 525g</option>
+                <option value="700">🙂 Moderate — 700g</option>
+              </select>
+              <button id="set-goal-btn" class="goal-button">Set</button>
+            </div>
+          </div>
+
+          <div id="goal-progress" class="goal-progress" style="display: none;">
+            <div class="progress-bar-container">
+              <div id="progress-bar-fill" class="progress-bar-fill">
+                <span id="progress-bar-label" class="progress-bar-label"></span>
+              </div>
+            </div>
+            <div class="goal-stats">
+              <div class="stat-item">
+                <span class="stat-label">🏅 Best streak</span>
+                <span id="goal-best-streak" class="stat-value">—</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">✅ Goals met</span>
+                <span id="goal-total-met" class="stat-value">—</span>
+              </div>
+              <div class="stat-item" style="border-bottom: none;">
+                <span class="stat-label">🔥 Current streak</span>
+                <span id="streak-display" class="stat-value" style="display: none;"><span id="streak-count">0</span> weeks</span>
+              </div>
+            </div>
+            <span id="progress-message" style="display:none;"></span>
+          </div>
+        </section>
+
+        <!-- Achievements -->
+        <section class="achievements-card">
+          <div class="achievements-header">
+            <h3>🏆 Achievements</h3>
+            <span id="achievements-count" class="achievements-count"></span>
+          </div>
+          <div class="achievements-fill">
+            <div id="achievements-grid" class="achievements-grid"></div>
+          </div>
+        </section>
+      </div>
+
       <!-- Modal Buttons -->
       <div class="modal-buttons">
         <button class="modal-btn" data-modal="learn">ℹ️ Learn More</button>
