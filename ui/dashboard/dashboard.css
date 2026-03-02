@@ -36,12 +36,59 @@ body {
   color: #2f7d32;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .range-toggle {
   display: flex;
   gap: 0.5rem;
   background: #f5f5f5;
   padding: 0.25rem;
   border-radius: 8px;
+}
+
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f5f5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+}
+
+.nav-arrow {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: #2f7d32;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-weight: 300;
+}
+
+.nav-arrow:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.nav-arrow--disabled,
+.nav-arrow:disabled {
+  color: #bbb;
+  cursor: default;
+}
+
+.period-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+  min-width: 90px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .range-toggle button {

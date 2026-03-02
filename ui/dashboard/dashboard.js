@@ -15,19 +15,89 @@ const trackingStorage = new TrackingStorage();
 let categoryChart = null;
 let platformChart = null;
 
+// Navigation state
+let activeRange = 'today';
+let periodOffset = 0;
+
 const formatGrams = (grams) => {
   if (grams >= 1000) return `${(grams / 1000).toFixed(2)} kg`;
   return `${grams.toFixed(1)} g`;
 };
 
-const getRange = (rangeKey) => {
-  const end = new Date();
-  const start = new Date();
-  if (rangeKey === "week") start.setDate(end.getDate() - 6);
-  else if (rangeKey === "month") start.setDate(end.getDate() - 29);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(23, 59, 59, 999);
+const getRange = (rangeKey, offset) => {
+  const now = new Date();
+
+  if (rangeKey === 'today') {
+    const base = new Date(now);
+    base.setDate(base.getDate() + offset);
+    const start = new Date(base); start.setHours(0, 0, 0, 0);
+    const end = new Date(base); end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (rangeKey === 'week') {
+    const dow = now.getDay();
+    const daysToMon = dow === 0 ? -6 : 1 - dow;
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() + daysToMon);
+    thisMonday.setHours(0, 0, 0, 0);
+    const start = new Date(thisMonday);
+    start.setDate(thisMonday.getDate() + offset * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (rangeKey === 'month') {
+    const year = now.getFullYear();
+    const month = now.getMonth() + offset;
+    const start = new Date(year, month, 1, 0, 0, 0, 0);
+    const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
   return { start, end };
+};
+
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FULL_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const getPeriodLabel = (rangeKey, offset) => {
+  const now = new Date();
+  if (rangeKey === 'today') {
+    if (offset === 0) return 'Today';
+    if (offset === -1) return 'Yesterday';
+    const d = new Date(now); d.setDate(d.getDate() + offset);
+    return `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+  }
+  if (rangeKey === 'week') {
+    if (offset === 0) return 'This Week';
+    if (offset === -1) return 'Last Week';
+    const { start, end } = getRange('week', offset);
+    return `${SHORT_MONTHS[start.getMonth()]} ${start.getDate()} - ${SHORT_MONTHS[end.getMonth()]} ${end.getDate()}`;
+  }
+  if (rangeKey === 'month') {
+    if (offset === 0) return 'This Month';
+    if (offset === -1) return 'Last Month';
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return `${FULL_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  return '';
+};
+
+const updateNavUI = () => {
+  document.getElementById('period-label').textContent = getPeriodLabel(activeRange, periodOffset);
+  const nextBtn = document.getElementById('nav-next');
+  if (periodOffset === 0) {
+    nextBtn.disabled = true;
+    nextBtn.classList.add('nav-arrow--disabled');
+  } else {
+    nextBtn.disabled = false;
+    nextBtn.classList.remove('nav-arrow--disabled');
+  }
 };
 
 
@@ -300,9 +370,9 @@ const renderPlatformChart = (platformTotals) => {
   });
 };
 
-const renderDashboard = async (rangeKey) => {
+const renderDashboard = async () => {
   try {
-    const { start, end } = getRange(rangeKey);
+    const { start, end } = getRange(activeRange, periodOffset);
     const events = await trackingStorage.getEventsInRange(start, end);
     
     const categoryTotals = aggregateByCategory(events);
@@ -317,16 +387,23 @@ const renderDashboard = async (rangeKey) => {
     });
 
     await getLocationAndGridInfo();
+    updateNavUI();
     
     document.getElementById("total-impact").textContent = `${formatGrams(total)} CO₂`;
     updateCalculationFormulas(events, total);
-    updateEducationComparisons(events, total, rangeKey);
+    updateEducationComparisons(events, total, activeRange);
     updateModernEquivalencies(total);
     renderCategoryChart(categoryTotals);
     renderPlatformChart(platformTotals);
-    renderRecommendations(await generateRecommendations(events, categoryTotals, total));
-    await updateGoalProgress();
-    await updateAchievements();
+    const isCurrentPeriod = periodOffset === 0;
+    document.querySelector('.recommendations-card').style.display = isCurrentPeriod ? '' : 'none';
+    document.querySelector('.goals-row').style.display = isCurrentPeriod ? '' : 'none';
+
+    if (isCurrentPeriod) {
+      renderRecommendations(await generateRecommendations(events, categoryTotals, total));
+      await updateGoalProgress();
+      await updateAchievements();
+    }
   } catch (error) {
     // Silently fail - dashboard will show defaults
   }
@@ -337,8 +414,23 @@ const bindRangeButtons = () => {
     button.addEventListener("click", () => {
       document.querySelectorAll(".range-toggle button").forEach((btn) => btn.classList.remove("active"));
       button.classList.add("active");
-      renderDashboard(button.dataset.range);
+      activeRange = button.dataset.range;
+      periodOffset = 0; // reset to current period on range switch
+      renderDashboard();
     });
+  });
+};
+
+const bindNavButtons = () => {
+  document.getElementById('nav-prev').addEventListener('click', () => {
+    periodOffset -= 1;
+    renderDashboard();
+  });
+  document.getElementById('nav-next').addEventListener('click', () => {
+    if (periodOffset < 0) {
+      periodOffset += 1;
+      renderDashboard();
+    }
   });
 };
 
@@ -674,8 +766,7 @@ const saveApiKey = async () => {
       const warningHTML = `⚠️ No API key - using global average (${BASELINE_GRID_INTENSITY} gCO₂/kWh). <a href="https://api-portal.electricitymap.org/" target="_blank">Get free API key</a>`;
       showApiStatus('warning', warningHTML, true);
       
-      const active = document.querySelector(".range-toggle .active");
-      renderDashboard(active ? active.dataset.range : "today");
+      renderDashboard();
       return;
     }
     
@@ -712,8 +803,7 @@ const saveApiKey = async () => {
         await tryGetLocationAutomatically();
       }
       
-      const active = document.querySelector(".range-toggle .active");
-      renderDashboard(active ? active.dataset.range : "today");
+      renderDashboard();
     } else {
       // Invalid key - clear any cached grid data and don't save the key
       await chrome.storage.local.remove('gridIntensityCache');
@@ -729,12 +819,13 @@ const saveApiKey = async () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   bindRangeButtons();
+  bindNavButtons();
   initModals();
   loadDeviceSetting();
   loadApiKey();
   loadCurrentGoal();
   updateDeviceInfo();
-  renderDashboard("today");
+  renderDashboard();
   
   document.getElementById('device-type').addEventListener('change', (e) => {
     saveDeviceSetting(e.target.value);
@@ -748,8 +839,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EVENT_SAVED") {
-      const active = document.querySelector(".range-toggle .active");
-      renderDashboard(active ? active.dataset.range : "today");
+      renderDashboard();
     }
   });
 });

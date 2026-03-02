@@ -12,10 +12,17 @@
       <!-- Compact Header -->
       <header class="header">
         <h1>🌱 CurbYourCarbon</h1>
-        <div class="range-toggle">
-          <button data-range="today" class="active">Today</button>
-          <button data-range="week">Week</button>
-          <button data-range="month">Month</button>
+        <div class="header-controls">
+          <div class="range-toggle">
+            <button data-range="today" class="active">Today</button>
+            <button data-range="week">Week</button>
+            <button data-range="month">Month</button>
+          </div>
+          <div class="period-nav">
+            <button id="nav-prev" class="nav-arrow" title="Previous period">&#8249;</button>
+            <span id="period-label" class="period-label">Today</span>
+            <button id="nav-next" class="nav-arrow nav-arrow--disabled" title="Next period" disabled>&#8250;</button>
+          </div>
         </div>
       </header>
 
