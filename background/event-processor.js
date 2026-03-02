@@ -80,19 +80,17 @@ export const calculateEventCarbon = async (payload) => {
     deviceWatts,
   });
 
-  const carbonGrams =
-    gridMultiplier !== null
-      ? +(baselineCarbon * gridMultiplier).toFixed(2)
-      : baselineCarbon;
+  const carbonGrams = gridMultiplier !== null
+    ? +(baselineCarbon * gridMultiplier).toFixed(2)
+    : baselineCarbon;
 
   const baselineCarbonRate = calculateCarbonRate(payload, {
     carbonIntensity: BASELINE_GRID_INTENSITY,
     deviceWatts,
   });
-  const carbonRate =
-    gridMultiplier !== null
-      ? +(baselineCarbonRate * gridMultiplier).toFixed(2)
-      : baselineCarbonRate;
+  const carbonRate = gridMultiplier !== null
+    ? +(baselineCarbonRate * gridMultiplier).toFixed(2)
+    : baselineCarbonRate;
 
   return {
     carbonGrams,
