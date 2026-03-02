@@ -100,8 +100,6 @@ const updateNavUI = () => {
   }
 };
 
-
-
 // Helper to show API key status messages
 const showApiStatus = (type, message, isHTML = false) => {
   const statusEl = document.getElementById('api-key-status');
@@ -112,8 +110,6 @@ const showApiStatus = (type, message, isHTML = false) => {
     statusEl.textContent = message;
   }
 };
-
-
 
 const tryGetLocationAutomatically = async () => {
   const response = await new Promise((resolve) => {
@@ -198,10 +194,6 @@ const updateDeviceInfo = async () => {
 const updateCalculationFormulas = (events, total) => {
   const totalMB = events.reduce((sum, e) => sum + (e.data?.totalMB || 0), 0);
   const totalTime = events.reduce((sum, e) => sum + (e.data?.timeActive || 0), 0);
-  
-  const eventWithGrid = events.find(e => e.data?.gridIntensity);
-  const actualIntensity = eventWithGrid?.data?.gridIntensity || BASELINE_GRID_INTENSITY;
-  const gridMultiplier = eventWithGrid?.data?.gridMultiplier || 1.0;
   
   const networkKwh = (totalMB / 1024) * 0.016;
   document.getElementById('network-formula').textContent = `${totalMB.toFixed(1)} MB transferred`;
@@ -611,15 +603,6 @@ const updateGoalProgress = async () => {
   } else {
     streakDisplay.style.display = 'none';
   }
-
-  // ── Goal stats row ──────────────────────────────────────────
-  // Days left in the week (Mon = 7, Tue = 6, … Sun = 1)
-  const todayDow = now.getDay();
-  const daysLeft = todayDow === 0 ? 1 : 8 - todayDow;
-
-  // Daily budget: how many grams per remaining day to still hit goal
-  const remainingCarbon = Math.max(0, goal.amount - currentCarbon);
-  const dailyBudget = daysLeft > 0 ? Math.round(remainingCarbon / daysLeft) : 0;
 
   const bestStreakEl = document.getElementById('goal-best-streak');
   const best = history.bestStreak ?? 0;

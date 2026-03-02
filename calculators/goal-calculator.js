@@ -3,7 +3,6 @@
  * 
  * Pure functions for goal calculations, progress, and streaks
  */
-import { getGoalHistory, updateGoalHistory } from "../storage/goal-storage.js";
 
 /**
  * Weekly goal presets (grams CO2 per week)
@@ -26,20 +25,6 @@ export const getPeriodStart = () => {
   start.setDate(start.getDate() + diff);
   start.setHours(0, 0, 0, 0);
   return start;
-};
-
-/**
- * Check if the current week has changed since the last recorded period
- * @param {Object} history - Goal history
- * @returns {boolean} True if a new week has started
- */
-export const isNewPeriod = (history) => {
-  if (!history.lastPeriodStart) return true;
-  
-  const lastPeriodDate = new Date(history.lastPeriodStart);
-  const currentPeriodStart = getPeriodStart();
-  
-  return currentPeriodStart.getTime() > lastPeriodDate.getTime();
 };
 
 /**
@@ -74,41 +59,5 @@ export const calculateProgress = (currentCarbon, goal) => {
     status,
     message
   };
-};
-
-/**
- * Check and update weekly streaks
- * @param {number} periodCarbon - Carbon for the completed week
- * @param {Object} goal - Goal object
- * @returns {Promise<Object>} Updated history
- */
-export const checkAndUpdateStreak = async (periodCarbon, goal) => {
-  const history = await getGoalHistory();
-  const goalMet = periodCarbon <= goal.amount;
-  
-  if (goalMet) {
-    // Goal met - increment or maintain streak
-    if (history.lastPeriodMet) {
-      history.currentStreak += 1;
-    } else {
-      history.currentStreak = 1;
-    }
-    history.totalAchieved += 1;
-    history.bestStreak = Math.max(history.bestStreak, history.currentStreak);
-  } else {
-    // Goal not met - reset streak
-    history.currentStreak = 0;
-  }
-  
-  history.lastPeriodMet = goalMet;
-  history.lastPeriodStart = getPeriodStart().toISOString().split('T')[0];
-
-  // Track if any completed week came in under 50% of goal (for Overachiever badge)
-  if (goalMet && periodCarbon <= goal.amount * 0.5) {
-    history.halfGoalAchieved = true;
-  }
-  
-  await updateGoalHistory(history);
-  return history;
 };
 
