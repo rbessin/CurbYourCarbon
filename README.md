@@ -2,9 +2,14 @@
 
 A browser extension that tracks the carbon footprint of your web browsing using actual measured data from the Performance API.
 
+## Sneak Peak
+
+To be added later.
+
 ## What It Does
 
-Measures your client-side carbon emissions from network data transfer and device energy consumption while browsing. Works on any website automatically.
+Measures your client-side carbon emissions from network data transfer and device energy consumption while browsing. 
+Works on any website automatically, tailoring insights to your usage.
 
 ## How It Works
 
@@ -20,7 +25,7 @@ Average web user: ~75g CO₂/day from browsing
 ## Installation
 
 **Developers:** Load unpacked from `chrome://extensions/` with developer mode enabled
-**Users:** Install from Chrome Web Store _(coming soon)_
+**Users:** Install from [Chrome Web Store](https://chromewebstore.google.com/detail/curbyourcarbon/fbojjgdaemhnolpjiepkhbcnelcckoed)
 
 ## Research-Backed
 
