@@ -4,7 +4,19 @@ A browser extension that tracks the carbon footprint of your web browsing using 
 
 ## Sneak Peak
 
-To be added later.
+**Dashboard**
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/31f21567-5ec7-44b3-9b83-d506e3e511fa" width="480" alt="CurbYourCarbon dashboard overview" />
+  <img src="https://github.com/user-attachments/assets/790aa11a-55e3-4276-a741-4bed06454348" width="480" alt="CurbYourCarbon breakdown by category" />
+</p>
+
+**Extension Popup**
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/9e7fc71f-55c6-4e71-ae16-a94d41f1fadf" width="180" alt="Popup summary view" />
+  <img src="https://github.com/user-attachments/assets/b7bc3e7a-0a6c-4c50-8b87-a3520450252e" width="180" alt="Popup achievements view" />
+</p>
 
 ## What It Does
 
