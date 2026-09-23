@@ -37,6 +37,7 @@ Average web user: ~75g CO₂/day from browsing
 ## Installation
 
 **Developers:** Load unpacked from `chrome://extensions/` with developer mode enabled
+
 **Users:** Install from [Chrome Web Store](https://chromewebstore.google.com/detail/curbyourcarbon/fbojjgdaemhnolpjiepkhbcnelcckoed)
 
 ## Research-Backed
